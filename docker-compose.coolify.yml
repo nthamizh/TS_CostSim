@@ -1,0 +1,215 @@
+name: costsimulator
+
+# ── Coolify deployment guide ───────────────────────────────────────────────────
+#
+# Deploy as a separate "Docker Compose" resource alongside platform-base and configiq.
+# All three resources share the platform_default bridge network.
+#
+# ── Required environment variables (set in Coolify UI) ────────────────────────
+#
+#   COSTSIM_SHARED_SECRET   Min 32 chars. MUST match the same var in platform-base.
+#                           Generate: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+#
+#   POSTGRES_PASSWORD       Strong password for CostSim's Postgres.
+#   MINIO_SECRET_KEY        MinIO root password.
+#   NODE_AUTH_TOKEN         GitHub PAT with read:packages scope (pulls @nthamizh/ui).
+#   VITE_API_URL            Platform API public URL, e.g. https://api.yourdomain.com
+#
+# ── Platform-side changes also needed ─────────────────────────────────────────
+#
+#   In platform-base Coolify environment variables, also set:
+#     COSTSIM_API_URL=http://costsim-api:4002
+#     COSTSIM_SHARED_SECRET=<same secret>
+#
+#   Then add to platform-base/apps/api/src/routes/index.ts:
+#     import { costsimRouter } from "../modules/costsim/costsim.proxy.js";
+#     v1Router.use("/costsim", costsimRouter);
+#
+#   And add to platform-base/apps/web/src/App.tsx + routes:
+#     <Route path="/costsim/*" element={<CostSimLoader />} />
+#
+#   (See platform-integration/ folder in this repo for the ready-made files.)
+#
+# ── Routing ───────────────────────────────────────────────────────────────────
+#
+#   costsim-api is NEVER publicly exposed — Platform API proxies to it.
+#   costsim-web serves the Module Federation remote at /costsim-remote/*.
+#   Traefik routes /costsim-remote/* to costsim-web:5175 (StripPrefix applied).
+
+services:
+
+  costsim-postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-costsim}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB:-costsim}
+    volumes: [costsim_postgres_data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL","pg_isready -U ${POSTGRES_USER:-costsim}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [costsim_internal]
+
+  costsim-redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    volumes: [costsim_redis_data:/data]
+    healthcheck:
+      test: ["CMD","redis-cli","ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [costsim_internal]
+
+  costsim-minio:
+    image: minio/minio:latest
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${MINIO_ACCESS_KEY:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_SECRET_KEY:?Set MINIO_SECRET_KEY}
+    volumes: [costsim_minio_data:/data]
+    healthcheck:
+      test: ["CMD","curl","-f","http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [costsim_internal]
+
+  costsim-migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      costsim-postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-costsim}:${POSTGRES_PASSWORD}@costsim-postgres:5432/${POSTGRES_DB:-costsim}
+      COSTSIM_SHARED_SECRET: ${COSTSIM_SHARED_SECRET:?Set COSTSIM_SHARED_SECRET}
+      REDIS_URL: redis://costsim-redis:6379
+    command: ["node", "dist/db/migrate.js"]
+    working_dir: /repo/apps/api
+    restart: "no"
+    networks: [costsim_internal]
+
+  costsim-seed:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    depends_on:
+      costsim-migrate:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-costsim}:${POSTGRES_PASSWORD}@costsim-postgres:5432/${POSTGRES_DB:-costsim}
+      COSTSIM_SHARED_SECRET: ${COSTSIM_SHARED_SECRET}
+    command: ["node", "dist/db/seed.js"]
+    working_dir: /repo/apps/api
+    restart: "no"
+    networks: [costsim_internal]
+
+  costsim-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      args:
+        CACHEBUST: ${CACHEBUST:-1}
+        NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      costsim-postgres:
+        condition: service_healthy
+      costsim-redis:
+        condition: service_healthy
+      costsim-minio:
+        condition: service_healthy
+      costsim-seed:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL","node -e \"require('http').get('http://localhost:4002/health',(r)=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    environment:
+      NODE_ENV: production
+      PORT: 4002
+      DATABASE_URL: postgres://${POSTGRES_USER:-costsim}:${POSTGRES_PASSWORD}@costsim-postgres:5432/${POSTGRES_DB:-costsim}
+      REDIS_URL: ${REDIS_URL:-redis://costsim-redis:6379}
+      COSTSIM_SHARED_SECRET: ${COSTSIM_SHARED_SECRET}
+      PLATFORM_API_URL: ${PLATFORM_API_URL:-http://api:4000}
+      STORAGE_ENDPOINT: costsim-minio
+      STORAGE_PORT: 9000
+      STORAGE_USE_SSL: "false"
+      STORAGE_ACCESS_KEY: ${MINIO_ACCESS_KEY:-minioadmin}
+      STORAGE_SECRET_KEY: ${MINIO_SECRET_KEY}
+      STORAGE_BUCKET: costsim
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    expose: ["4002"]
+    # Internal only — no SERVICE_FQDN. Platform API reaches this via
+    # http://costsim-api:4002 over platform_default.
+    networks:
+      - costsim_internal
+      - platform_default
+
+  costsim-worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+      args:
+        CACHEBUST: ${CACHEBUST:-1}
+        NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN}
+    restart: unless-stopped
+    depends_on:
+      costsim-api:
+        condition: service_started
+    environment:
+      REDIS_URL: ${REDIS_URL:-redis://costsim-redis:6379}
+    deploy:
+      replicas: ${WORKER_REPLICAS:-1}
+    networks: [costsim_internal]
+
+  costsim-web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:?Set to Platform API public URL}
+        CACHEBUST: ${CACHEBUST:-1}
+        NODE_AUTH_TOKEN: ${NODE_AUTH_TOKEN}
+    restart: unless-stopped
+    expose: ["5175"]
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=coolify"
+      # Routes /costsim-remote/* to this container (strip prefix before forwarding)
+      - 'traefik.http.routers.costsim-remote.rule=HostRegexp(`^[a-z0-9-]+\.yourdomain\.com$`) && PathPrefix(`/costsim-remote`)'
+      - "traefik.http.routers.costsim-remote.entrypoints=https"
+      - "traefik.http.routers.costsim-remote.tls=true"
+      - "traefik.http.routers.costsim-remote.priority=100"
+      - "traefik.http.routers.costsim-remote.middlewares=costsim-strip-prefix"
+      - "traefik.http.routers.costsim-remote.service=costsim-web-svc"
+      - "traefik.http.middlewares.costsim-strip-prefix.stripprefix.prefixes=/costsim-remote"
+      - "traefik.http.services.costsim-web-svc.loadbalancer.server.port=5175"
+    networks:
+      - costsim_internal
+      - platform_default
+      - coolify
+
+networks:
+  costsim_internal:
+    driver: bridge
+  platform_default:
+    name: platform_default
+    driver: bridge
+    # Reuses existing network if platform-base or configiq already created it.
+  coolify:
+    external: true
+
+volumes:
+  costsim_postgres_data:
+  costsim_redis_data:
+  costsim_minio_data:
