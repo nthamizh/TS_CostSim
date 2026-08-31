@@ -31,11 +31,23 @@ function verifyWebhookToken(req: any): boolean {
 
 async function reportStatus(runId: string, status: "success" | "failed", message: string) {
   try {
+    // Platform's verifyCallbackToken (webhookAuth.ts) checks TWO claims:
+    // runId (to cross-check against the URL :id) and sub. A token minted
+    // without runId is rejected with 401 regardless of the shared secret —
+    // confirmed by reading Platform's own verifyCallbackToken source.
+    // The original token minted here lacked runId entirely, which would
+    // have left every ETL run stuck in "running" state on Platform forever.
+    const callbackToken = jwt.sign(
+      { sub: "costsim-etl-worker", runId },
+      env.COSTSIM_SHARED_SECRET,
+      { expiresIn: "60s" },
+    );
     await fetch(`${env.PLATFORM_API_URL}/v1/scheduler/runs/${runId}`, {
       method: "PATCH",
       headers: {
         "Content-Type": "application/json",
-        "X-CostSim-Token": jwt.sign({ sub: "costsim-worker" }, env.COSTSIM_SHARED_SECRET, { expiresIn: "60s" }),
+        "Authorization": `Bearer ${callbackToken}`,
+        "X-CostSim-Token": callbackToken,
       },
       body: JSON.stringify({ status, resultMessage: message }),
     });

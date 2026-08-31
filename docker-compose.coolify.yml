@@ -13,7 +13,7 @@ name: costsimulator
 #   POSTGRES_PASSWORD       Strong password for CostSim's Postgres.
 #   MINIO_SECRET_KEY        MinIO root password.
 #   NODE_AUTH_TOKEN         GitHub PAT with read:packages scope (pulls @nthamizh/ui).
-#   VITE_API_URL            Platform API public URL, e.g. https://api.yourdomain.com
+#   VITE_API_URL            Platform API public URL, e.g. https://api.tsnet.dev
 #
 # ── Platform-side changes also needed ─────────────────────────────────────────
 #
@@ -186,7 +186,7 @@ services:
       - "traefik.enable=true"
       - "traefik.docker.network=coolify"
       # Routes /costsim-remote/* to this container (strip prefix before forwarding)
-      - 'traefik.http.routers.costsim-remote.rule=HostRegexp(`^[a-z0-9-]+\.yourdomain\.com$`) && PathPrefix(`/costsim-remote`)'
+      - 'traefik.http.routers.costsim-remote.rule=HostRegexp(`^[a-z0-9-]+\.tsnet\.dev$`) && PathPrefix(`/costsim-remote`)'
       - "traefik.http.routers.costsim-remote.entrypoints=https"
       - "traefik.http.routers.costsim-remote.tls=true"
       - "traefik.http.routers.costsim-remote.priority=100"

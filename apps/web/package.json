@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "@costsim/types": "workspace:*",
-    "@nthamizh/ui": "^0.0.1",
+    "@nthamizh/ui": "^1.0.1",
     "@tanstack/react-query": "^5.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

@@ -1,5 +1,5 @@
-# Local development compose — brings up all services on non-conflicting ports.
-# CostSim uses port offsets: +2 from ConfigIQ (4001→4003 not used, 5174→5175).
+# Local development compose — all services on non-conflicting ports.
+# CostSim uses port offset +2 from ConfigIQ: Postgres 5433, MinIO 9002/9003.
 name: costsimulator-dev
 
 services:
@@ -12,16 +12,20 @@ services:
     ports: ["5433:5432"]
     volumes: [costsim_pg_data:/var/lib/postgresql/data]
     healthcheck:
-      test: ["CMD-SHELL","pg_isready -U costsim"]
-      interval: 5s; timeout: 5s; retries: 10
+      test: ["CMD-SHELL", "pg_isready -U costsim"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   costsim-redis:
     image: redis:7-alpine
     ports: ["6380:6379"]
     volumes: [costsim_redis_data:/data]
     healthcheck:
-      test: ["CMD","redis-cli","ping"]
-      interval: 5s; timeout: 3s; retries: 10
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   costsim-minio:
     image: minio/minio:latest
@@ -29,11 +33,61 @@ services:
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    ports: ["9002:9000","9003:9003"]
+    ports: ["9002:9000", "9003:9003"]
     volumes: [costsim_minio_data:/data]
     healthcheck:
-      test: ["CMD","curl","-f","http://localhost:9000/minio/health/live"]
-      interval: 10s; timeout: 5s; retries: 5
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  costsim-migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment:
+      DATABASE_URL: postgres://costsim:costsim@costsim-postgres:5432/costsim
+      COSTSIM_SHARED_SECRET: local_dev_secret_key_minimum_32_chars
+      REDIS_URL: redis://costsim-redis:6379
+    command: ["node", "dist/db/migrate.js"]
+    depends_on:
+      costsim-postgres:
+        condition: service_healthy
+    restart: "no"
+
+  costsim-api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    ports: ["4002:4002"]
+    environment:
+      DATABASE_URL: postgres://costsim:costsim@costsim-postgres:5432/costsim
+      REDIS_URL: redis://costsim-redis:6379
+      COSTSIM_SHARED_SECRET: local_dev_secret_key_minimum_32_chars
+      PLATFORM_API_URL: http://host.docker.internal:4000
+      STORAGE_ENDPOINT: costsim-minio
+      STORAGE_PORT: 9000
+      STORAGE_USE_SSL: "false"
+      STORAGE_ACCESS_KEY: minioadmin
+      STORAGE_SECRET_KEY: minioadmin
+      STORAGE_BUCKET: costsim
+    depends_on:
+      costsim-postgres:
+        condition: service_healthy
+      costsim-minio:
+        condition: service_healthy
+      costsim-migrate:
+        condition: service_completed_successfully
+
+  costsim-worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment:
+      REDIS_URL: redis://costsim-redis:6379
+    depends_on:
+      costsim-redis:
+        condition: service_healthy
 
 volumes:
   costsim_pg_data:

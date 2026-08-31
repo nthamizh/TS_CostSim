@@ -252,3 +252,8 @@ export interface ApiResponse<T> {
   data: T;
   error?: string;
 }
+
+// Backwards-compatible alias — VisualizerPage imports SimResult but the
+// canonical name is SimulationResult. Adding the alias here so both names
+// work rather than silently having a compile error in the page.
+export type SimResult = SimulationResult;
