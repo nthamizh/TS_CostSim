@@ -1,4 +1,8 @@
-import Redis from "ioredis";
+// ioredis is a CommonJS package. With moduleResolution: NodeNext, TypeScript
+// is strict about CJS default imports — "import Redis from 'ioredis'" fails
+// with TS2351 (not constructable). Named import is the correct form and works
+// under both moduleResolution modes.
+import { Redis } from "ioredis";
 
 // ---------------------------------------------------------------------------
 // CostSimulator worker — dormant job consumer.
