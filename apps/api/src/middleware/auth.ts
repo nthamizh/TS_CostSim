@@ -1,6 +1,9 @@
 import type { Request, Response, NextFunction } from "express";
-// jsonwebtoken is CommonJS — use named imports under NodeNext moduleResolution
-import { verify } from "jsonwebtoken";
+// jsonwebtoken is CommonJS — it uses module.exports = { verify, sign, ... }
+// which Node.js ESM cannot destructure as named imports at runtime, even
+// though TypeScript's esModuleInterop makes it typecheck. Use the default
+// import and access members from it, which works in both ESM runtime and TS.
+import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 import type { CostSimServiceToken } from "@costsim/types";
 
@@ -22,7 +25,7 @@ export async function requireServiceToken(req: Request, res: Response, next: Nex
     return;
   }
   try {
-    const payload = verify(token, env.COSTSIM_SHARED_SECRET) as CostSimServiceToken;
+    const payload = jwt.verify(token, env.COSTSIM_SHARED_SECRET) as CostSimServiceToken;
     req.serviceToken = payload;
     next();
   } catch {

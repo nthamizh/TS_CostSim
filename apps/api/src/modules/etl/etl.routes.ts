@@ -17,8 +17,9 @@ import { db } from "../../db/client.js";
 import { env } from "../../config/env.js";
 import * as T from "../../db/schema.js";
 import { eq } from "drizzle-orm";
-// jsonwebtoken is CommonJS — named imports under NodeNext moduleResolution
-import { sign, verify } from "jsonwebtoken";
+// jsonwebtoken is CommonJS — default import required for ESM runtime compatibility.
+// Named imports typecheck (esModuleInterop) but fail at runtime in Node ESM.
+import jwt from "jsonwebtoken";
 
 export const etlRouter: IRouter = Router();
 
@@ -26,7 +27,7 @@ export const etlRouter: IRouter = Router();
 function verifyWebhookToken(req: any): boolean {
   const token = req.headers["x-costsim-token"] as string | undefined;
   if (!token) return false;
-  try { verify(token, env.COSTSIM_SHARED_SECRET); return true; }
+  try { jwt.verify(token, env.COSTSIM_SHARED_SECRET); return true; }
   catch { return false; }
 }
 
@@ -38,7 +39,7 @@ async function reportStatus(runId: string, status: "success" | "failed", message
     // confirmed by reading Platform's own verifyCallbackToken source.
     // The original token minted here lacked runId entirely, which would
     // have left every ETL run stuck in "running" state on Platform forever.
-    const callbackToken = sign(
+    const callbackToken = jwt.sign(
       { sub: "costsim-etl-worker", runId },
       env.COSTSIM_SHARED_SECRET,
       { expiresIn: "60s" },
