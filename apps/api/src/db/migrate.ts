@@ -2,10 +2,11 @@ import "dotenv/config";
 import { readFileSync, readdirSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
-import pg from "pg";
+// pg is CommonJS — named import under NodeNext moduleResolution
+import { Client } from "pg";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const client = new pg.Client({ connectionString: process.env.DATABASE_URL! });
+const client = new Client({ connectionString: process.env["DATABASE_URL"]! });
 
 await client.connect();
 console.log("🗄️  Running CostSimulator migrations…");

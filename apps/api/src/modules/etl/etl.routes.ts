@@ -10,22 +10,23 @@
  *
  * Status is reported back to Platform via PATCH /v1/scheduler/runs/:runId.
  */
-import { Router } from "express";
+import { Router, type IRouter } from "express";
 import { asyncHandler } from "../../middleware/asyncHandler.js";
 import { etlWebhookSchema } from "@costsim/validation";
 import { db } from "../../db/client.js";
 import { env } from "../../config/env.js";
 import * as T from "../../db/schema.js";
-import { eq, and } from "drizzle-orm";
-import jwt from "jsonwebtoken";
+import { eq } from "drizzle-orm";
+// jsonwebtoken is CommonJS — named imports under NodeNext moduleResolution
+import { sign, verify } from "jsonwebtoken";
 
-export const etlRouter = Router();
+export const etlRouter: IRouter = Router();
 
 /** Verify Platform's scheduler webhook HMAC token (same COSTSIM_SHARED_SECRET). */
 function verifyWebhookToken(req: any): boolean {
   const token = req.headers["x-costsim-token"] as string | undefined;
   if (!token) return false;
-  try { jwt.verify(token, env.COSTSIM_SHARED_SECRET); return true; }
+  try { verify(token, env.COSTSIM_SHARED_SECRET); return true; }
   catch { return false; }
 }
 
@@ -37,7 +38,7 @@ async function reportStatus(runId: string, status: "success" | "failed", message
     // confirmed by reading Platform's own verifyCallbackToken source.
     // The original token minted here lacked runId entirely, which would
     // have left every ETL run stuck in "running" state on Platform forever.
-    const callbackToken = jwt.sign(
+    const callbackToken = sign(
       { sub: "costsim-etl-worker", runId },
       env.COSTSIM_SHARED_SECRET,
       { expiresIn: "60s" },

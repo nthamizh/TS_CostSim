@@ -1,19 +1,14 @@
-import { Router } from "express";
+import { Router, type IRouter } from "express";
 import { asyncHandler } from "../../middleware/asyncHandler.js";
 import { requireServiceToken, requirePermission } from "../../middleware/auth.js";
 import { simulationInputSchema } from "@costsim/validation";
 import { db } from "../../db/client.js";
 import { runSimulation } from "./engine.js";
 import * as T from "../../db/schema.js";
-import { eq, and, or, isNull } from "drizzle-orm";
+import { eq, or, isNull } from "drizzle-orm";
 
-export const costingRouter = Router();
+export const costingRouter: IRouter = Router();
 costingRouter.use(requireServiceToken);
-
-const entScope = (enterpriseId: string | null) =>
-  enterpriseId
-    ? or(isNull(T.eligibilityCosting.enterpriseId), eq(T.eligibilityCosting.enterpriseId, enterpriseId))
-    : isNull(T.eligibilityCosting.enterpriseId);
 
 // Helper: fetch all source data for an enterprise
 async function loadDataSources(enterpriseId: string | null) {

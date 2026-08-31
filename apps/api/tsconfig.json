@@ -3,9 +3,11 @@
   "compilerOptions": {
     "outDir": "./dist",
     "rootDir": "./src",
-    "moduleResolution": "node",
+    "moduleResolution": "NodeNext",
     "module": "NodeNext",
     "target": "ES2022"
   },
-  "include": ["src"]
+  "include": [
+    "src"
+  ]
 }
