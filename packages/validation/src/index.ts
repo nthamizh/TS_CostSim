@@ -2,17 +2,17 @@ import { z } from "zod";
 
 export const simulationInputSchema = z.object({
   elementName:        z.string().min(1),
-  assignmentNumber:   z.string().optional().nullable(),
+  assignmentNumber:   z.string().nullable().default(null),
   legalEntity:        z.string().min(1),
   department:         z.string().min(1),
   agency:             z.string().min(1),
   peopleGroup1:       z.string().min(1),
   peopleGroup2:       z.string().min(1),
-  peopleGroup3:       z.string().optional().nullable(),
-  contractClause:     z.string().optional().nullable(),
-  payrollDefinition:  z.string().optional().nullable(),
-  jobCode:            z.string().optional().nullable(),
-  positionCode:       z.string().optional().nullable(),
+  peopleGroup3:       z.string().nullable().default(null),
+  contractClause:     z.string().nullable().default(null),
+  payrollDefinition:  z.string().nullable().default(null),
+  jobCode:            z.string().nullable().default(null),
+  positionCode:       z.string().nullable().default(null),
   effectiveDate:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
 });
 
