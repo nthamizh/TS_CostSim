@@ -233,7 +233,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
       // Full replace in a transaction — delete old rows then insert new ones.
       // If the insert fails, the delete is rolled back so old data is preserved.
-      await db.transaction(async (tx: typeof db) => {
+      await db.transaction(async (tx) => {
         await tx.delete(table).where(eq(table.enterpriseId, enterpriseId));
         if (rows.length > 0) {
           const enriched = rows.map(r => ({ ...r, enterpriseId }));
