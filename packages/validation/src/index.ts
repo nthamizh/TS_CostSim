@@ -17,26 +17,20 @@ export const simulationInputSchema = z.object({
 });
 
 export const etlWebhookSchema = z.object({
-  jobId:      z.string().uuid(),
-  jobType:    z.literal("etl"),
-  jobConfig:  z.object({
+  // Platform scheduler sends exactly: { runId, jobType, jobConfig }
+  // jobId and triggeredBy were in the original schema but are never
+  // sent by Platform's scheduler service — removed to match reality.
+  runId:    z.string().uuid(),
+  jobType:  z.literal("etl"),
+  jobConfig: z.object({
     targetTable: z.enum([
       "eligibility","department","person","person_element",
       "position","job","payroll","fast_formula",
       "iac_ppg","iac_seg","valid_combinations","list_of_values",
     ]),
-    // enterpriseId is optional — if omitted, the ETL extracts it from
-    // the Platform service token (which always carries the caller's
-    // enterprise context). Providing it explicitly is still supported
-    // for platform-admin jobs that need to target a specific enterprise.
+    // enterpriseId optional — resolved from token if absent
     enterpriseId: z.string().uuid().optional(),
-    // sourceFileId is the Platform file storage ID of the source CSV.
-    // The ETL fetches it from Platform's authenticated file API rather
-    // than reading from CostSim's own MinIO, which means data admins
-    // upload through My Files in the Platform UI — no separate MinIO
-    // access needed.
+    // sourceFileId: Platform file storage ID of the source CSV
     sourceFileId: z.string().uuid(),
   }),
-  triggeredBy: z.enum(["scheduled","manual"]),
-  runId:       z.string().uuid(),
 });

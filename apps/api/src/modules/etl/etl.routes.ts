@@ -3,7 +3,7 @@
  * Scheduler ETL webhook receiver.
  *
  * Platform POSTs here when a scheduled ETL job fires.
- * Payload: { jobId, jobType: "etl", jobConfig: { targetTable, sourceFileId, enterpriseId? }, runId }
+ * Payload: { runId, jobType: "etl", jobConfig: { targetTable, sourceFileId, enterpriseId? } }
  *
  * Source file is a CSV uploaded to Platform's own file storage.
  * The ETL fetches it via Platform's authenticated file API, parses
