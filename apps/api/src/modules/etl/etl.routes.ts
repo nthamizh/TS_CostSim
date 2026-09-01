@@ -297,7 +297,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
   });
 }));
 
-/** GET /v1/jobs/etl-runs — ETL history for data admins and platform admins */
+/** GET /v1/jobs/etl-runs - ETL history for data admins and platform admins */
 etlRouter.get("/etl-runs", asyncHandler(async (req, res) => {
   const tokenPayload = decodeWebhookToken(req);
   if (!tokenPayload) {
