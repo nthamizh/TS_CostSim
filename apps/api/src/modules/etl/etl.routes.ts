@@ -209,13 +209,16 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
   // -- Async ETL execution ---------------------------------------------------
   setImmediate(async () => {
+    console.log("[ETL] async work started — targetTable:", targetTable, "enterpriseId:", enterpriseId, "sourceFileId:", sourceFileId);
     const table = TABLE_MAP[targetTable];
     if (!table) {
+      console.error("[ETL] unknown table:", targetTable);
       await reportStatus(runId, "failed", `Unknown target table: "${targetTable}". Valid values: ${Object.keys(TABLE_MAP).join(", ")}`);
       return;
     }
 
     try {
+      console.log("[ETL] fetching file from Platform...");
       // Fetch the source CSV from Platform's authenticated file storage API.
       // The token doubles as the auth credential - Platform's service-file
       // endpoint (GET /v1/scheduler/files/:id) verifies it and returns the
@@ -242,6 +245,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
       }
 
       const fileBody = await fileRes.json() as { data?: { fileName: string; contentBase64: string } };
+      console.log("[ETL] file fetch response — has data:", !!fileBody.data, "has base64:", !!fileBody.data?.contentBase64);
       if (!fileBody.data?.contentBase64) {
         await reportStatus(runId, "failed", "Platform returned an empty file response.");
         return;
@@ -250,6 +254,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
       const { fileName, contentBase64 } = fileBody.data;
       const csvText = Buffer.from(contentBase64, "base64").toString("utf8");
       const rows = parseCsv(csvText);
+      console.log("[ETL] CSV parsed — rows:", rows.length, "first row keys:", rows[0] ? Object.keys(rows[0]).join(",") : "none");
 
       if (rows.length === 0) {
         await reportStatus(runId, "failed",
@@ -287,6 +292,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
+      console.error("[ETL] UNHANDLED ERROR:", msg, err);
       await db.insert(T.etlRuns).values({
         platformRunId: runId, enterpriseId, targetTable,
         status: "failed", errorMessage: msg, finishedAt: new Date(),
