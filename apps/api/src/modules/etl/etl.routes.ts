@@ -11,7 +11,7 @@
  * enterprise+table in a single transaction.
  *
  * enterpriseId resolution order:
- *   1. jobConfig.enterpriseId (explicit — for platform-admin jobs targeting a specific enterprise)
+ *   1. jobConfig.enterpriseId (explicit - for platform-admin jobs targeting a specific enterprise)
  *   2. The enterpriseId claim in the Platform service token (the caller's enterprise context)
  * If neither is present, the job fails with a clear error.
  */
@@ -27,7 +27,7 @@ import type { CostSimServiceToken } from "@costsim/types";
 
 export const etlRouter: IRouter = Router();
 
-// ── Auth helpers ─────────────────────────────────────────────────────────────
+// -- Auth helpers -------------------------------------------------------------
 
 /** Verify and decode Platform's scheduler webhook JWT.
  *  Tries PLATFORM_WEBHOOK_SECRET first (the dedicated scheduler secret),
@@ -35,7 +35,7 @@ export const etlRouter: IRouter = Router();
  *  1. Dedicated: SCHEDULER_WEBHOOK_SECRET set in platform-base =
  *     PLATFORM_WEBHOOK_SECRET set in costsim (recommended)
  *  2. Simple: SCHEDULER_WEBHOOK_SECRET not set in platform-base, so
- *     platform uses CONFIGIQ_SHARED_SECRET to sign — and costsim uses
+ *     platform uses CONFIGIQ_SHARED_SECRET to sign - and costsim uses
  *     COSTSIM_SHARED_SECRET which must match CONFIGIQ_SHARED_SECRET. */
 function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }) | null {
   const authHeader = req.headers["authorization"] as string | undefined;
@@ -70,7 +70,7 @@ function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }
   return null;
 }
 
-// ── Status callback ───────────────────────────────────────────────────────────
+// -- Status callback -----------------------------------------------------------
 
 async function reportStatus(runId: string, status: "success" | "failed", message: string) {
   try {
@@ -93,7 +93,7 @@ async function reportStatus(runId: string, status: "success" | "failed", message
   }
 }
 
-// ── CSV parser ────────────────────────────────────────────────────────────────
+// -- CSV parser ----------------------------------------------------------------
 
 /**
  * Parses a CSV string into an array of row objects.
@@ -124,7 +124,7 @@ function parseCsv(text: string): Record<string, string | null>[] {
     let cursor = 0;
     while (cursor < line.length) {
       if (line[cursor] === '"') {
-        // Quoted field — read until closing quote (handling escaped "")
+        // Quoted field - read until closing quote (handling escaped "")
         let val = "";
         cursor++; // skip opening quote
         while (cursor < line.length) {
@@ -160,7 +160,7 @@ function parseCsv(text: string): Record<string, string | null>[] {
   return rows;
 }
 
-// ── Table map ─────────────────────────────────────────────────────────────────
+// -- Table map -----------------------------------------------------------------
 
 const TABLE_MAP: Record<string, any> = {
   eligibility:        T.eligibilityCosting,
@@ -177,10 +177,10 @@ const TABLE_MAP: Record<string, any> = {
   list_of_values:     T.listOfValues,
 };
 
-// ── ETL handler ───────────────────────────────────────────────────────────────
+// -- ETL handler ---------------------------------------------------------------
 
 etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
-  console.log("[ETL] handler entered — body keys:", Object.keys(req.body || {}), "| content-type:", req.headers["content-type"]);
+  console.log("[ETL] handler entered - body keys:", Object.keys(req.body || {}), "| content-type:", req.headers["content-type"]);
   const tokenPayload = decodeWebhookToken(req);
   console.log("[ETL] tokenPayload:", tokenPayload === null ? "NULL" : typeof tokenPayload, !!tokenPayload);
   if (!tokenPayload) {
@@ -198,17 +198,17 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
   const { runId, jobConfig } = parsed.data;
   const { targetTable, sourceFileId } = jobConfig;
 
-  // Resolve enterpriseId — explicit in jobConfig wins, else from token
+  // Resolve enterpriseId - explicit in jobConfig wins, else from token
   const enterpriseId = jobConfig.enterpriseId ?? tokenPayload.enterpriseId ?? null;
   if (!enterpriseId) {
-    res.status(422).json({ success: false, error: "enterpriseId is required — either in jobConfig or the token must carry an enterprise context." });
+    res.status(422).json({ success: false, error: "enterpriseId is required - either in jobConfig or the token must carry an enterprise context." });
     return;
   }
 
-  // Acknowledge immediately — ETL runs async
+  // Acknowledge immediately - ETL runs async
   res.json({ success: true, data: { accepted: true, runId } });
 
-  // ── Async ETL execution ───────────────────────────────────────────────────
+  // -- Async ETL execution ---------------------------------------------------
   setImmediate(async () => {
     const table = TABLE_MAP[targetTable];
     if (!table) {
@@ -218,7 +218,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
     try {
       // Fetch the source CSV from Platform's authenticated file storage API.
-      // The token doubles as the auth credential — Platform's service-file
+      // The token doubles as the auth credential - Platform's service-file
       // endpoint (GET /v1/scheduler/files/:id) verifies it and returns the
       // file bytes as base64.
       const callbackToken = jwt.sign(
@@ -236,7 +236,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
       if (!fileRes.ok) {
         await reportStatus(runId, "failed",
-          `Could not fetch source file (id: ${sourceFileId}) from Platform — HTTP ${fileRes.status}. ` +
+          `Could not fetch source file (id: ${sourceFileId}) from Platform - HTTP ${fileRes.status}. ` +
           `Check the file ID is correct and belongs to the job's creator.`
         );
         return;
@@ -261,7 +261,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
         return;
       }
 
-      // Full replace in a transaction — delete old rows then insert new ones.
+      // Full replace in a transaction - delete old rows then insert new ones.
       // If the insert fails, the delete is rolled back so old data is preserved.
       await db.transaction(async (tx) => {
         await tx.delete(table).where(eq(table.enterpriseId, enterpriseId));
