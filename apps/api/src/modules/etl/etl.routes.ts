@@ -184,7 +184,6 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
   const tokenPayload = decodeWebhookToken(req);
   console.log("[ETL] tokenPayload:", tokenPayload === null ? "NULL" : typeof tokenPayload, !!tokenPayload);
   if (!tokenPayload) {
-  if (!tokenPayload) {
     res.status(401).json({ success: false, error: "Unauthorized" });
     return;
   }
