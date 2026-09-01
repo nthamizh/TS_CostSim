@@ -74,9 +74,11 @@ function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }
 
 async function reportStatus(runId: string, status: "success" | "failed", message: string) {
   try {
+    // Must use PLATFORM_WEBHOOK_SECRET (same secret Platform uses to verify
+    // callback tokens via verifyCallbackToken in webhookAuth.ts).
     const callbackToken = jwt.sign(
       { sub: "costsim-etl-worker", runId },
-      env.COSTSIM_SHARED_SECRET,
+      env.PLATFORM_WEBHOOK_SECRET ?? env.COSTSIM_SHARED_SECRET,
       { expiresIn: "60s" },
     );
     await fetch(`${env.PLATFORM_API_URL}/v1/scheduler/runs/${runId}`, {
@@ -219,20 +221,22 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
     try {
       console.log("[ETL] fetching file from Platform...");
-      // Fetch the source CSV from Platform's authenticated file storage API.
-      // The token doubles as the auth credential - Platform's service-file
-      // endpoint (GET /v1/scheduler/files/:id) verifies it and returns the
-      // file bytes as base64.
-      const callbackToken = jwt.sign(
-        { sub: "costsim-etl-worker", runId },
-        env.COSTSIM_SHARED_SECRET,
+      // Platform's GET /v1/scheduler/files/:id verifies the token with
+      // verifyServiceFileToken — requires BOTH runId AND sub claims, and
+      // sub must be the file owner (the user who created the scheduler job).
+      // The incoming webhook token already has both: tokenPayload.sub is
+      // the job creator, tokenPayload.runId is this run. Re-sign with the
+      // same PLATFORM_WEBHOOK_SECRET so Platform can verify it.
+      const fileToken = jwt.sign(
+        { sub: tokenPayload.sub, runId },
+        env.PLATFORM_WEBHOOK_SECRET ?? env.COSTSIM_SHARED_SECRET,
         { expiresIn: "120s" },
       );
 
       const fileRes = await fetch(`${env.PLATFORM_API_URL}/v1/scheduler/files/${sourceFileId}`, {
         headers: {
-          Authorization:    `Bearer ${callbackToken}`,
-          "X-CostSim-Token": callbackToken,
+          Authorization:    `Bearer ${fileToken}`,
+          "X-CostSim-Token": fileToken,
         },
       });
 
