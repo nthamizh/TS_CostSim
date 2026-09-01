@@ -38,24 +38,35 @@ export const etlRouter: IRouter = Router();
  *     platform uses CONFIGIQ_SHARED_SECRET to sign — and costsim uses
  *     COSTSIM_SHARED_SECRET which must match CONFIGIQ_SHARED_SECRET. */
 function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }) | null {
-  const token =
-    (req.headers["authorization"] as string | undefined)?.replace("Bearer ", "") ??
-    (req.headers["x-costsim-token"] as string | undefined);
-  if (!token) return null;
+  const authHeader = req.headers["authorization"] as string | undefined;
+  const tokenFromAuth = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const tokenFromHeader = req.headers["x-costsim-token"] as string | undefined;
+  const token = tokenFromAuth ?? tokenFromHeader ?? null;
 
-  const secrets = [
-    env.PLATFORM_WEBHOOK_SECRET,
-    env.COSTSIM_SHARED_SECRET,
-  ].filter(Boolean) as string[];
+  console.log("[ETL auth] token present:", !!token, "| auth header:", authHeader?.slice(0, 20));
+
+  if (!token) {
+    console.error("[ETL auth] no token found in request");
+    return null;
+  }
+
+  const secrets = [env.PLATFORM_WEBHOOK_SECRET, env.COSTSIM_SHARED_SECRET].filter(Boolean) as string[];
+  console.log("[ETL auth] trying", secrets.length, "secrets");
 
   for (const secret of secrets) {
     try {
-      return jwt.verify(token, secret) as CostSimServiceToken & { runId?: string };
+      const payload = jwt.verify(token, secret);
+      console.log("[ETL auth] verify SUCCESS with secret ending", secret.slice(-4), "| payload type:", typeof payload, "| truthy:", !!payload);
+      if (!payload || typeof payload !== "object") {
+        console.error("[ETL auth] payload is not an object:", payload);
+        continue;
+      }
+      return payload as CostSimServiceToken & { runId?: string };
     } catch (err) {
-      console.error("[ETL auth] jwt.verify failed with secret ending", secret.slice(-4), ":", (err as Error).message);
+      console.error("[ETL auth] jwt.verify FAILED with secret ending", secret.slice(-4), ":", (err as Error).message);
     }
   }
-  console.error("[ETL auth] all secrets exhausted — token rejected. Auth header present:", !!token);
+  console.error("[ETL auth] all secrets exhausted");
   return null;
 }
 
@@ -169,7 +180,10 @@ const TABLE_MAP: Record<string, any> = {
 // ── ETL handler ───────────────────────────────────────────────────────────────
 
 etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
+  console.log("[ETL] handler entered — body keys:", Object.keys(req.body || {}), "| content-type:", req.headers["content-type"]);
   const tokenPayload = decodeWebhookToken(req);
+  console.log("[ETL] tokenPayload:", tokenPayload === null ? "NULL" : typeof tokenPayload, !!tokenPayload);
+  if (!tokenPayload) {
   if (!tokenPayload) {
     res.status(401).json({ success: false, error: "Unauthorized" });
     return;
