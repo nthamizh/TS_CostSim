@@ -6,6 +6,9 @@ import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 import { exportCsv, flattenSegments } from "../lib/exportCsv";
 
+const isPlaceholder = (v: string|null) =>
+  v !== null && (v.startsWith("Dept ") || v.startsWith("Pers "));
+
 const SEGS = ["Agency","Operating Unit","Fund","Cost Centre","Account","Project","Donor","Interagency","Future"] as const;
 
 // Placeholder segment labels for the dept/person costing layer columns.
@@ -21,6 +24,8 @@ const LEGEND = [
   { s: "elig", label: "Element eligibility",      cls: "bg-green-50 border-green-300" },
   { s: "cost", label: "Final cost (offset only)", cls: "bg-gray-100 border-gray-300" },
 ];
+// Shown in legend only when a layer checkbox is active
+const PLACEHOLDER_LEGEND = "italic text-gray-400 — placeholder (no real data configured for this combination)";
 
 const selC = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const lbl  = "text-[10px] font-semibold text-gray-400 uppercase tracking-wider";
@@ -51,6 +56,8 @@ export function CombinationsPage() {
     elem, agency: agency||"", cc: cc||"",
     leFilter: leFilter||"", pg1Filter: pg1Filter||"", pg2Filter: pg2Filter||"",
     costType, eligOnly: eligOnly ? "true" : "",
+    includeDept: showDept ? "true" : "",
+    includePers:  showPers ? "true" : "",
   };
 
   const { data: rows, isFetching, error } = useQuery({
@@ -205,6 +212,9 @@ export function CombinationsPage() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <span className="text-xs text-gray-500">
             {isFetching ? "Resolving..." : `${filtered.length} rows - ${nElig} of ${nCombo} combinations eligible`}
+            {(showDept || showPers) && !isFetching && (
+              <span className="ml-2 italic text-gray-400">· italic values are placeholders where no real data exists</span>
+            )}
           </span>
           <div className="flex gap-3 flex-wrap">
             {LEGEND.map(l => (
@@ -313,21 +323,30 @@ export function CombinationsPage() {
 
                     {/* Department costing layer */}
                     {showDept && deptSegs.map((v, i) => (
-                      <td key={i} className={`px-2 py-2 text-center font-mono text-[11px] ${i === 0 ? "border-l-2 border-purple-200" : ""} ${v ? "bg-purple-50 text-purple-700" : "text-gray-200"}`}>
+                      <td key={i} className={`px-2 py-2 text-center font-mono text-[11px] ${i === 0 ? "border-l-2 border-purple-200" : ""} ${
+                        !v ? "text-gray-200" :
+                        isPlaceholder(v) ? "bg-purple-50 text-purple-300 italic" :
+                        "bg-purple-50 text-purple-700"
+                      }`}>
                         {v ?? "·"}
                       </td>
                     ))}
 
                     {/* Person costing layer */}
                     {showPers && persSegs.map((v, i) => (
-                      <td key={i} className={`px-2 py-2 text-center font-mono text-[11px] ${i === 0 ? "border-l-2 border-blue-200" : ""} ${v ? "bg-blue-50 text-blue-700" : "text-gray-200"}`}>
+                      <td key={i} className={`px-2 py-2 text-center font-mono text-[11px] ${i === 0 ? "border-l-2 border-blue-200" : ""} ${
+                        !v ? "text-gray-200" :
+                        isPlaceholder(v) ? "bg-blue-50 text-blue-300 italic" :
+                        "bg-blue-50 text-blue-700"
+                      }`}>
                         {v ?? "·"}
                       </td>
                     ))}
 
-                    {/* Final resolved segments */}
+                    {/* Final resolved segments — placeholder values shown italic */}
                     {(r.segments as {v:string|null;s:string}[]).map((f, i) => (
-                      <SegmentCell key={i} v={f.v} s={f.s} isFirst={i === 0} />
+                      <SegmentCell key={i} v={f.v} s={f.s} isFirst={i === 0}
+                        placeholder={isPlaceholder(f.v)} />
                     ))}
                   </tr>
                 );

@@ -43,7 +43,9 @@ export const api = {
   getCombinations: (params: {
     elem: string; atype?: string; agency?: string; cc?: string;
     leFilter?: string; pg1Filter?: string; pg2Filter?: string;
-    costType?: string; eligOnly?: string; date?: string;
+    costType?: string; eligOnly?: string;
+    includeDept?: string; includePers?: string;
+    date?: string;
   }) =>
     request(`/costing/combinations?${new URLSearchParams(Object.entries(params).filter(([,v]) => v) as [string,string][])}`),
 

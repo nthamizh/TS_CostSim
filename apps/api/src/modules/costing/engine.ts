@@ -271,10 +271,30 @@ export function computeCombinationsGrid(
     agency: string|null; cc: string|null; date: Date;
     leFilter: string|null; pg1Filter: string|null; pg2Filter: string|null;
     costType: "Cost"|"Offset"|"Both";
+    // When true, the layer is applied regardless of atype.
+    // The combinations page uses these instead of the atype flag so the
+    // user can see what dept/person costing WOULD contribute for each
+    // combination without needing to know which combinations have data.
+    includeDept?: boolean;
+    includePers?: boolean;
   }
 ): ComboResultRow[] {
-  const { elem, atype, agency, cc, date, leFilter, pg1Filter, pg2Filter, costType } = opts;
+  const { elem, atype, agency, cc, date, leFilter, pg1Filter, pg2Filter, costType,
+          includeDept = false, includePers = false } = opts;
   const usePerson = atype === "SCA agency";
+  // Static placeholder segment values injected when the checkbox is checked.
+  // These show what the final account would look like IF dept/person costing
+  // were configured for every combination — they participate in the merge at
+  // the correct rank so FF/eligibility can still override individual segments.
+  const DEPT_PLACEHOLDER = [
+    "Dept Agency","Dept Operating Unit","Dept Fund","Dept Cost Centre",
+    "Dept Account","Dept Project","Dept Donor","Dept Interagency","Dept Future",
+  ] as (string|null)[];
+  const PERS_PLACEHOLDER = [
+    "Pers Agency","Pers Operating Unit","Pers Fund","Pers Cost Centre",
+    "Pers Account","Pers Project","Pers Donor","Pers Interagency","Pers Future",
+  ] as (string|null)[];
+
   const out: ComboResultRow[] = [];
 
   for (const c of combos) {
@@ -306,8 +326,17 @@ export function computeCombinationsGrid(
       : null;
 
     const ffSegs   = ffRow    ? segs(ffRow)    : Array(9).fill(null);
-    const persSegs = personRow ? segs(personRow) : Array(9).fill(null);
-    const deptSegs = deptRow   ? segs(deptRow)   : Array(9).fill(null);
+    // Real person/dept segs from DB (only when usePerson=true and a match exists)
+    const realPersSegs = personRow ? segs(personRow) : Array(9).fill(null);
+    const realDeptSegs = deptRow   ? segs(deptRow)   : Array(9).fill(null);
+    // For the hierarchy merge: use real segs when available, fall back to
+    // placeholder when the checkbox is checked, or null when unchecked.
+    const persSegs: (string|null)[] = realPersSegs.some(v => v !== null)
+      ? realPersSegs
+      : (includePers ? PERS_PLACEHOLDER : Array(9).fill(null));
+    const deptSegs: (string|null)[] = realDeptSegs.some(v => v !== null)
+      ? realDeptSegs
+      : (includeDept ? DEPT_PLACEHOLDER : Array(9).fill(null));
 
     const cost: ResolvedSeg[] = Array.from({length:9}, (_,i) => {
       if (!elRow) return { v: null, s: "" as SegSource };
@@ -332,7 +361,8 @@ export function computeCombinationsGrid(
       ffRule: ffRow?.key ?? null, ffRank: ffRow?.priorityRank ?? null,
       personMatch: personRow?.assignmentNumber ?? null,
       deptMatch: deptRow?.deptName ?? null,
-      // Raw layer values — let the client show dept/person columns separately
+      // Raw layer values shown in the layer columns — real when data exists,
+      // placeholder when checkbox is checked and no real match found, null otherwise.
       deptSegments:   deptSegs,
       personSegments: persSegs,
     };

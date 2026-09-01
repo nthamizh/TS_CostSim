@@ -176,6 +176,7 @@ costingRouter.get("/combinations",
       elem, atype = "Regular", agency = "", cc = "",
       leFilter = "", pg1Filter = "", pg2Filter = "",
       costType = "Both", eligOnly = "false",
+      includeDept = "false", includePers = "false",
       date: dateStr,
     } = req.query as Record<string, string>;
 
@@ -198,6 +199,8 @@ costingRouter.get("/combinations",
       pg1Filter: pg1Filter || null,
       pg2Filter: pg2Filter || null,
       costType: costType as "Cost"|"Offset"|"Both",
+      includeDept: includeDept === "true",
+      includePers: includePers === "true",
       date,
     });
 
