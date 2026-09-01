@@ -30,17 +30,32 @@ export const etlRouter: IRouter = Router();
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 
 /** Verify and decode Platform's scheduler webhook JWT.
- *  Returns the payload (including enterpriseId) or null if invalid. */
+ *  Tries PLATFORM_WEBHOOK_SECRET first (the dedicated scheduler secret),
+ *  then falls back to COSTSIM_SHARED_SECRET. This handles two setups:
+ *  1. Dedicated: SCHEDULER_WEBHOOK_SECRET set in platform-base =
+ *     PLATFORM_WEBHOOK_SECRET set in costsim (recommended)
+ *  2. Simple: SCHEDULER_WEBHOOK_SECRET not set in platform-base, so
+ *     platform uses CONFIGIQ_SHARED_SECRET to sign — and costsim uses
+ *     COSTSIM_SHARED_SECRET which must match CONFIGIQ_SHARED_SECRET. */
 function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }) | null {
   const token =
     (req.headers["authorization"] as string | undefined)?.replace("Bearer ", "") ??
     (req.headers["x-costsim-token"] as string | undefined);
   if (!token) return null;
-  try {
-    return jwt.verify(token, env.COSTSIM_SHARED_SECRET) as CostSimServiceToken & { runId?: string };
-  } catch {
-    return null;
+
+  const secrets = [
+    env.PLATFORM_WEBHOOK_SECRET,
+    env.COSTSIM_SHARED_SECRET,
+  ].filter(Boolean) as string[];
+
+  for (const secret of secrets) {
+    try {
+      return jwt.verify(token, secret) as CostSimServiceToken & { runId?: string };
+    } catch {
+      // Try next secret
+    }
   }
+  return null;
 }
 
 // ── Status callback ───────────────────────────────────────────────────────────

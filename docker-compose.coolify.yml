@@ -90,6 +90,10 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER:-costsim}:${POSTGRES_PASSWORD}@costsim-postgres:5432/${POSTGRES_DB:-costsim}
       COSTSIM_SHARED_SECRET: ${COSTSIM_SHARED_SECRET:?Set COSTSIM_SHARED_SECRET}
+      # Must match SCHEDULER_WEBHOOK_SECRET in platform-base (or CONFIGIQ_SHARED_SECRET
+      # if SCHEDULER_WEBHOOK_SECRET is not set there). Simplest: set this to the
+      # same value as COSTSIM_SHARED_SECRET.
+      PLATFORM_WEBHOOK_SECRET: ${PLATFORM_WEBHOOK_SECRET:-}
       REDIS_URL: redis://costsim-redis:6379
     command: ["node", "dist/db/migrate.js"]
     working_dir: /repo/apps/api

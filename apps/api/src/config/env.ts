@@ -8,6 +8,13 @@ const envSchema = z.object({
   DATABASE_URL:              z.string().min(1),
   REDIS_URL:                 z.string().default("redis://costsim-redis:6379"),
   COSTSIM_SHARED_SECRET:     z.string().min(32),
+  // The secret Platform's scheduler uses to sign all outbound webhook tokens.
+  // Must match SCHEDULER_WEBHOOK_SECRET in platform-base (or fall back to
+  // CONFIGIQ_SHARED_SECRET if SCHEDULER_WEBHOOK_SECRET is not set there).
+  // Simplest setup: set this to the same value as COSTSIM_SHARED_SECRET
+  // AND set SCHEDULER_WEBHOOK_SECRET in platform-base to that same value.
+  // If unset, falls back to COSTSIM_SHARED_SECRET for backward compat.
+  PLATFORM_WEBHOOK_SECRET:   z.string().min(32).optional(),
 
   // Platform API for scheduler run-status callbacks
   PLATFORM_API_URL:          z.string().url().default("http://api:4000"),
