@@ -18,6 +18,12 @@ app.use(compression());
 app.use(cors({ origin: false }));
 app.use(express.json({ limit: "10mb" }));
 
+// Log every incoming request for debugging
+app.use((req, _res, next) => {
+  console.log(`[REQ] ${req.method} ${req.path} | auth: ${req.headers.authorization?.slice(0, 20)} | x-costsim: ${(req.headers["x-costsim-token"] as string | undefined)?.slice(0, 20)}`);
+  next();
+});
+
 // Public
 app.use("/health", healthRouter);
 
