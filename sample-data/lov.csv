@@ -1,0 +1,17 @@
+category,value,sortOrder
+Legal Employer,United Nations HQ,1
+Legal Employer,UN Geneva Office,2
+Legal Employer,UN Vienna Office,3
+People Group 1,Staff,1
+People Group 1,Consultant,2
+People Group 1,Individual Contractor,3
+People Group 2,Regular,1
+People Group 2,Temporary,2
+People Group 3,Professional,1
+People Group 3,General Service,2
+Agency,UNDP,1
+Agency,UNICEF,2
+Agency,UNHCR,3
+Contract Clause,Fixed-Term,1
+Contract Clause,Continuing,2
+Contract Clause,Temporary Appointment,3

@@ -1,0 +1,3 @@
+personNumber,assignmentNumber,element,personType,department,personAgency,legalEntity,peopleGroup,percentage,parStartDate,parEndDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
+100001,E100001A01,UNA_ER_SALARY,Employee,OFFICE OF HUMAN RESOURCES,,United Nations HQ,Staff|Regular|Professional,70,2024-01-01,4712-12-31,1000,2000,3002,,,,,,
+100001,E100001A01,UNA_ER_SALARY,Employee,OFFICE OF LEGAL AFFAIRS,,United Nations HQ,Staff|Regular|Professional,30,2024-01-01,4712-12-31,1000,2000,3003,,,,,,

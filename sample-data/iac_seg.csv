@@ -1,0 +1,4 @@
+legalEntity,accountType,segment,oldValue,newValue,startDate,endDate
+UN Geneva Office,Cost,Segment 3,3001,3901,2024-01-01,4712-12-31
+UN Geneva Office,Offset,Segment 3,9000,9900,2024-01-01,4712-12-31
+UN Vienna Office,Both,Segment 1,1000,1200,2024-01-01,4712-12-31

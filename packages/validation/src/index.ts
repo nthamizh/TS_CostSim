@@ -25,7 +25,17 @@ export const etlWebhookSchema = z.object({
       "position","job","payroll","fast_formula",
       "iac_ppg","iac_seg","valid_combinations","list_of_values",
     ]),
-    enterpriseId: z.string().uuid(),
+    // enterpriseId is optional — if omitted, the ETL extracts it from
+    // the Platform service token (which always carries the caller's
+    // enterprise context). Providing it explicitly is still supported
+    // for platform-admin jobs that need to target a specific enterprise.
+    enterpriseId: z.string().uuid().optional(),
+    // sourceFileId is the Platform file storage ID of the source CSV.
+    // The ETL fetches it from Platform's authenticated file API rather
+    // than reading from CostSim's own MinIO, which means data admins
+    // upload through My Files in the Platform UI — no separate MinIO
+    // access needed.
+    sourceFileId: z.string().uuid(),
   }),
   triggeredBy: z.enum(["scheduled","manual"]),
   runId:       z.string().uuid(),

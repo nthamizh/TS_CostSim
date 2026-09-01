@@ -1,44 +1,52 @@
+/// <reference types="node" />
 /**
  * Scheduler ETL webhook receiver.
  *
  * Platform POSTs here when a scheduled ETL job fires.
- * Payload shape: { jobId, jobType: "etl", jobConfig: { targetTable, enterpriseId }, runId }
+ * Payload: { jobId, jobType: "etl", jobConfig: { targetTable, sourceFileId, enterpriseId? }, runId }
  *
- * Strategy: full replace — DELETE existing rows for this enterprise+table,
- * then read from MinIO (the source file Platform uploaded), parse, and bulk INSERT
- * in a single transaction. The source file is a JSON array matching the DB row shape.
+ * Source file is a CSV uploaded to Platform's own file storage.
+ * The ETL fetches it via Platform's authenticated file API, parses
+ * the CSV into row objects, then does a full replace for the target
+ * enterprise+table in a single transaction.
  *
- * Status is reported back to Platform via PATCH /v1/scheduler/runs/:runId.
+ * enterpriseId resolution order:
+ *   1. jobConfig.enterpriseId (explicit — for platform-admin jobs targeting a specific enterprise)
+ *   2. The enterpriseId claim in the Platform service token (the caller's enterprise context)
+ * If neither is present, the job fails with a clear error.
  */
 import { Router, type IRouter } from "express";
-import { asyncHandler } from "../../middleware/asyncHandler.js";
-import { etlWebhookSchema } from "@costsim/validation";
-import { db } from "../../db/client.js";
-import { env } from "../../config/env.js";
-import * as T from "../../db/schema.js";
-import { eq } from "drizzle-orm";
-// jsonwebtoken is CommonJS — default import required for ESM runtime compatibility.
-// Named imports typecheck (esModuleInterop) but fail at runtime in Node ESM.
-import jwt from "jsonwebtoken";
+import { asyncHandler }         from "../../middleware/asyncHandler.js";
+import { etlWebhookSchema }     from "@costsim/validation";
+import { db }                   from "../../db/client.js";
+import { env }                  from "../../config/env.js";
+import * as T                   from "../../db/schema.js";
+import { eq }                   from "drizzle-orm";
+import jwt                      from "jsonwebtoken";
+import type { CostSimServiceToken } from "@costsim/types";
 
 export const etlRouter: IRouter = Router();
 
-/** Verify Platform's scheduler webhook HMAC token (same COSTSIM_SHARED_SECRET). */
-function verifyWebhookToken(req: any): boolean {
-  const token = req.headers["x-costsim-token"] as string | undefined;
-  if (!token) return false;
-  try { jwt.verify(token, env.COSTSIM_SHARED_SECRET); return true; }
-  catch { return false; }
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+
+/** Verify and decode Platform's scheduler webhook JWT.
+ *  Returns the payload (including enterpriseId) or null if invalid. */
+function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }) | null {
+  const token =
+    (req.headers["authorization"] as string | undefined)?.replace("Bearer ", "") ??
+    (req.headers["x-costsim-token"] as string | undefined);
+  if (!token) return null;
+  try {
+    return jwt.verify(token, env.COSTSIM_SHARED_SECRET) as CostSimServiceToken & { runId?: string };
+  } catch {
+    return null;
+  }
 }
+
+// ── Status callback ───────────────────────────────────────────────────────────
 
 async function reportStatus(runId: string, status: "success" | "failed", message: string) {
   try {
-    // Platform's verifyCallbackToken (webhookAuth.ts) checks TWO claims:
-    // runId (to cross-check against the URL :id) and sub. A token minted
-    // without runId is rejected with 401 regardless of the shared secret —
-    // confirmed by reading Platform's own verifyCallbackToken source.
-    // The original token minted here lacked runId entirely, which would
-    // have left every ETL run stuck in "running" state on Platform forever.
     const callbackToken = jwt.sign(
       { sub: "costsim-etl-worker", runId },
       env.COSTSIM_SHARED_SECRET,
@@ -47,8 +55,8 @@ async function reportStatus(runId: string, status: "success" | "failed", message
     await fetch(`${env.PLATFORM_API_URL}/v1/scheduler/runs/${runId}`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${callbackToken}`,
+        "Content-Type":    "application/json",
+        "Authorization":   `Bearer ${callbackToken}`,
         "X-CostSim-Token": callbackToken,
       },
       body: JSON.stringify({ status, resultMessage: message }),
@@ -57,6 +65,75 @@ async function reportStatus(runId: string, status: "success" | "failed", message
     console.error("Failed to report ETL status:", e);
   }
 }
+
+// ── CSV parser ────────────────────────────────────────────────────────────────
+
+/**
+ * Parses a CSV string into an array of row objects.
+ *
+ * Handles:
+ *  - CRLF and LF line endings
+ *  - Quoted fields (fields containing commas or newlines)
+ *  - Empty/null values: empty cells and the literal string "null" both
+ *    become JavaScript null so the DB receives null rather than the
+ *    empty string "null" written into a text column.
+ *  - Trailing whitespace stripped from all values.
+ */
+function parseCsv(text: string): Record<string, string | null>[] {
+  const lines = text.split(/\r?\n/);
+  if (lines.length < 2) return [];
+
+  // Strip BOM if present (common when files are saved from Excel)
+  const raw = lines[0]!.replace(/^\uFEFF/, "");
+  const headers = raw.split(",").map(h => h.trim());
+
+  const rows: Record<string, string | null>[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i]!.trim();
+    if (!line) continue; // skip blank rows
+
+    // Handle quoted fields properly
+    const cells: string[] = [];
+    let cursor = 0;
+    while (cursor < line.length) {
+      if (line[cursor] === '"') {
+        // Quoted field — read until closing quote (handling escaped "")
+        let val = "";
+        cursor++; // skip opening quote
+        while (cursor < line.length) {
+          if (line[cursor] === '"' && line[cursor + 1] === '"') {
+            val += '"'; cursor += 2;
+          } else if (line[cursor] === '"') {
+            cursor++; break; // closing quote
+          } else {
+            val += line[cursor++];
+          }
+        }
+        cells.push(val.trim());
+        if (line[cursor] === ",") cursor++; // skip comma after closing quote
+      } else {
+        const end = line.indexOf(",", cursor);
+        if (end === -1) {
+          cells.push(line.slice(cursor).trim());
+          break;
+        }
+        cells.push(line.slice(cursor, end).trim());
+        cursor = end + 1;
+      }
+    }
+
+    const row: Record<string, string | null> = {};
+    headers.forEach((h, idx) => {
+      const val = cells[idx] ?? "";
+      // Empty string and the literal "null" both map to null
+      row[h] = (val === "" || val.toLowerCase() === "null") ? null : val;
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+// ── Table map ─────────────────────────────────────────────────────────────────
 
 const TABLE_MAP: Record<string, any> = {
   eligibility:        T.eligibilityCosting,
@@ -73,8 +150,11 @@ const TABLE_MAP: Record<string, any> = {
   list_of_values:     T.listOfValues,
 };
 
+// ── ETL handler ───────────────────────────────────────────────────────────────
+
 etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
-  if (!verifyWebhookToken(req)) {
+  const tokenPayload = decodeWebhookToken(req);
+  if (!tokenPayload) {
     res.status(401).json({ success: false, error: "Unauthorized" });
     return;
   }
@@ -86,62 +166,96 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
   }
 
   const { runId, jobConfig } = parsed.data;
-  const { targetTable, enterpriseId } = jobConfig;
+  const { targetTable, sourceFileId } = jobConfig;
+
+  // Resolve enterpriseId — explicit in jobConfig wins, else from token
+  const enterpriseId = jobConfig.enterpriseId ?? tokenPayload.enterpriseId ?? null;
+  if (!enterpriseId) {
+    res.status(422).json({ success: false, error: "enterpriseId is required — either in jobConfig or the token must carry an enterprise context." });
+    return;
+  }
 
   // Acknowledge immediately — ETL runs async
   res.json({ success: true, data: { accepted: true, runId } });
 
-  // ── Async ETL execution ─────────────────────────────────────────────────
+  // ── Async ETL execution ───────────────────────────────────────────────────
   setImmediate(async () => {
     const table = TABLE_MAP[targetTable];
     if (!table) {
-      await reportStatus(runId, "failed", `Unknown target table: ${targetTable}`);
+      await reportStatus(runId, "failed", `Unknown target table: "${targetTable}". Valid values: ${Object.keys(TABLE_MAP).join(", ")}`);
       return;
     }
 
     try {
-      // The source data arrives as a JSON array in the job's own MinIO object
-      // (key: costsim/etl/<enterpriseId>/<targetTable>.json). The enterprise
-      // admin uploads the file via the CostSimulator web UI before scheduling.
-      const { Client } = await import("minio");
-      const minio = new Client({
-        endPoint:  env.STORAGE_ENDPOINT,
-        port:      env.STORAGE_PORT,
-        useSSL:    env.STORAGE_USE_SSL,
-        accessKey: env.STORAGE_ACCESS_KEY,
-        secretKey: env.STORAGE_SECRET_KEY,
+      // Fetch the source CSV from Platform's authenticated file storage API.
+      // The token doubles as the auth credential — Platform's service-file
+      // endpoint (GET /v1/scheduler/files/:id) verifies it and returns the
+      // file bytes as base64.
+      const callbackToken = jwt.sign(
+        { sub: "costsim-etl-worker", runId },
+        env.COSTSIM_SHARED_SECRET,
+        { expiresIn: "120s" },
+      );
+
+      const fileRes = await fetch(`${env.PLATFORM_API_URL}/v1/scheduler/files/${sourceFileId}`, {
+        headers: {
+          Authorization:    `Bearer ${callbackToken}`,
+          "X-CostSim-Token": callbackToken,
+        },
       });
 
-      const objectKey = `etl/${enterpriseId}/${targetTable}.json`;
-      const stream = await minio.getObject(env.STORAGE_BUCKET, objectKey);
-      const chunks: Buffer[] = [];
-      for await (const chunk of stream) chunks.push(Buffer.from(chunk));
-      const rows: Record<string, unknown>[] = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+      if (!fileRes.ok) {
+        await reportStatus(runId, "failed",
+          `Could not fetch source file (id: ${sourceFileId}) from Platform — HTTP ${fileRes.status}. ` +
+          `Check the file ID is correct and belongs to the job's creator.`
+        );
+        return;
+      }
 
-      // Full replace in a transaction
-      await db.transaction(async tx => {
-        const entCol = table.enterpriseId;
-        await tx.delete(table).where(eq(entCol, enterpriseId));
+      const fileBody = await fileRes.json() as { data?: { fileName: string; contentBase64: string } };
+      if (!fileBody.data?.contentBase64) {
+        await reportStatus(runId, "failed", "Platform returned an empty file response.");
+        return;
+      }
+
+      const { fileName, contentBase64 } = fileBody.data;
+      const csvText = Buffer.from(contentBase64, "base64").toString("utf8");
+      const rows = parseCsv(csvText);
+
+      if (rows.length === 0) {
+        await reportStatus(runId, "failed",
+          `"${fileName}" parsed to zero data rows. ` +
+          `The file must have a header row plus at least one data row, ` +
+          `and must be a valid CSV (comma-separated, UTF-8 or UTF-8 BOM).`
+        );
+        return;
+      }
+
+      // Full replace in a transaction — delete old rows then insert new ones.
+      // If the insert fails, the delete is rolled back so old data is preserved.
+      await db.transaction(async (tx: typeof db) => {
+        await tx.delete(table).where(eq(table.enterpriseId, enterpriseId));
         if (rows.length > 0) {
           const enriched = rows.map(r => ({ ...r, enterpriseId }));
-          // Insert in batches of 500
           for (let i = 0; i < enriched.length; i += 500) {
             await tx.insert(table).values(enriched.slice(i, i + 500));
           }
         }
       });
 
-      // Log run
       await db.insert(T.etlRuns).values({
         platformRunId: runId,
         enterpriseId,
         targetTable,
-        status: "success",
+        status:     "success",
         rowsLoaded: rows.length,
         finishedAt: new Date(),
       });
 
-      await reportStatus(runId, "success", `Loaded ${rows.length} rows into ${targetTable} for enterprise ${enterpriseId}`);
+      await reportStatus(runId, "success",
+        `Loaded ${rows.length} rows from "${fileName}" into ${targetTable} for enterprise ${enterpriseId}.`
+      );
+
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       await db.insert(T.etlRuns).values({
@@ -153,15 +267,20 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
   });
 }));
 
-/** GET /v1/jobs/etl-runs — view ETL history (data admins + platform admins) */
+/** GET /v1/jobs/etl-runs — ETL history for data admins and platform admins */
 etlRouter.get("/etl-runs", asyncHandler(async (req, res) => {
-  if (!verifyWebhookToken(req)) {
+  const tokenPayload = decodeWebhookToken(req);
+  if (!tokenPayload) {
     res.status(401).json({ success: false, error: "Unauthorized" });
     return;
   }
-  const { enterpriseId } = req.query as { enterpriseId?: string };
+  // Scope to the caller's enterprise unless they're a platform admin
+  const scopeEnterpriseId = tokenPayload.isPlatformAdmin
+    ? (req.query["enterpriseId"] as string | undefined)
+    : (tokenPayload.enterpriseId ?? undefined);
+
   const rows = await db.select().from(T.etlRuns)
-    .where(enterpriseId ? eq(T.etlRuns.enterpriseId, enterpriseId) : undefined)
+    .where(scopeEnterpriseId ? eq(T.etlRuns.enterpriseId, scopeEnterpriseId) : undefined)
     .limit(200)
     .orderBy(T.etlRuns.startedAt);
   res.json({ success: true, data: rows });

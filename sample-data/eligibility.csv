@@ -1,0 +1,5 @@
+elementName,eligibility,accountType,eligibilityStartDate,eligibilityEndDate,legalEmployer,peopleGroup1,peopleGroup2,peopleGroup3,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
+UNA_ER_SALARY,All Staff Regular,Cost Account,2024-01-01,4712-12-31,United Nations HQ,Staff,Regular,,1000,2000,3000,,,,,,
+UNA_ER_SALARY,All Staff Regular,Offset Account,2024-01-01,4712-12-31,United Nations HQ,Staff,Regular,,9000,2000,3000,,,,,,
+UNA_ER_POST_ALLOWANCE,Professional Staff,Cost Account,2024-01-01,4712-12-31,,Staff,Regular,Professional,1000,2100,3000,,,,,,
+UNA_ER_CONS_FEE,Consultants,Cost Account,2024-01-01,4712-12-31,,Consultant,,,1000,2500,3000,,,,,,

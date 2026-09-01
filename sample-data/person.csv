@@ -1,0 +1,4 @@
+personNumber,assignmentNumber,personType,department,personAgency,legalEntity,peopleGroup,percentage,parStartDate,parEndDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
+100001,E100001A01,Employee,OFFICE OF HUMAN RESOURCES,,United Nations HQ,Staff|Regular|Professional,100,2024-01-01,4712-12-31,1000,2000,3002,,,,,,
+100002,E100002A01,Employee,DEPT OF SAFETY AND SECURITY,,UN Geneva Office,Staff|Regular|General Service,100,2024-01-01,4712-12-31,1000,2000,3001,,,,,,
+200001,C200001A01,Consultant,OFFICE OF LEGAL AFFAIRS,UNDP,United Nations HQ,Consultant|Temporary,100,2024-03-01,2024-12-31,1000,2500,3003,,,,,,

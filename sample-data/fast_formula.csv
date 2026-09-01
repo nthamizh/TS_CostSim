@@ -1,0 +1,3 @@
+key,element,priorityRank,legalEntity,peopleGroup1,peopleGroup2,personAgency,personType,contractClause,startDate,endDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
+FF_SALARY_PROF_HQ,UNA_ER_SALARY,1,United Nations HQ,Staff,Regular,,Employee,,2024-01-01,4712-12-31,1000,2000,3000,,,,,,
+FF_SALARY_DEFAULT,UNA_ER_SALARY,99,,,,,,,2024-01-01,4712-12-31,1000,2000,3000,,,,,,
