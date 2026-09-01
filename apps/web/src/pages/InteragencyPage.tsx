@@ -32,7 +32,7 @@ export function InteragencyPage() {
   const pg2Key = Object.keys(lov).find(k => k.toLowerCase().includes("people group 2")) ?? "People Group 2";
 
   const qParams = {
-    elem, ia, atype, agency: agency||"", cc: cc||"",
+    elem, ia, agency: agency||"", cc: cc||"",
     pg1Filter: pg1Filter||"", pg2Filter: pg2Filter||"",
     costType, eligOnly: eligOnly ? "true" : "false",
   };
@@ -103,9 +103,6 @@ export function InteragencyPage() {
           ["Interagency (filters LE)", <select value={ia} onChange={e => setIa(e.target.value)} className={selC}>
             <option value="">Select...</option>
             {(dd?.interagencyLEs ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
-          ["Agency type", <select value={atype} onChange={e => setAtype(e.target.value)} className={selC}>
-            <option>SCA agency</option><option>Partner Agency</option><option>Regular</option>
           </select>],
           ["Cost type", <select value={costType} onChange={e => setCostType(e.target.value)} className={selC}>
             <option>Both</option><option>Cost</option><option>Offset</option>

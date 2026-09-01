@@ -257,6 +257,11 @@ export interface ComboResultRow {
   ffRule: string|null; ffRank: number|null;
   personMatch: string|null; deptMatch: string|null;
   segments: ResolvedSeg[];
+  // Raw segment values for each costing layer — null array when no match.
+  // Returned alongside the final resolved segments so the UI can display
+  // the dept and person layers independently (e.g. for the layer columns).
+  deptSegments: (string|null)[];
+  personSegments: (string|null)[];
 }
 
 export function computeCombinationsGrid(
@@ -327,6 +332,9 @@ export function computeCombinationsGrid(
       ffRule: ffRow?.key ?? null, ffRank: ffRow?.priorityRank ?? null,
       personMatch: personRow?.assignmentNumber ?? null,
       deptMatch: deptRow?.deptName ?? null,
+      // Raw layer values — let the client show dept/person columns separately
+      deptSegments:   deptSegs,
+      personSegments: persSegs,
     };
 
     if (costType !== "Offset") out.push({ ...base, type: "Cost",   segments: cost });

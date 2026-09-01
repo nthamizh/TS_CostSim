@@ -173,7 +173,7 @@ costingRouter.get("/combinations",
   requirePermission("viewSimulate"),
   asyncHandler(async (req, res) => {
     const {
-      elem, atype = "SCA agency", agency = "", cc = "",
+      elem, atype = "Regular", agency = "", cc = "",
       leFilter = "", pg1Filter = "", pg2Filter = "",
       costType = "Both", eligOnly = "false",
       date: dateStr,
@@ -216,7 +216,7 @@ costingRouter.get("/interagency",
   requirePermission("viewInteragency"),
   asyncHandler(async (req, res) => {
     const {
-      elem, ia, atype = "SCA agency", agency = "", cc = "",
+      elem, ia, atype = "Regular", agency = "", cc = "",
       pg1Filter = "", pg2Filter = "",
       costType = "Both", eligOnly = "true",
       date: dateStr,
