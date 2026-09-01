@@ -1,4 +1,3 @@
 legalEntity,peopleGroupSegment,element,accountType,isActive,startDate,endDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-United Nations HQ,Staff|Regular|Professional,UNA_ER_SALARY,Cost,True,2024-01-01,4712-12-31,1000,2000,3000,,,,,,
-United Nations HQ,Staff|Regular|Professional,UNA_ER_SALARY,Offset,True,2024-01-01,4712-12-31,9000,2000,3000,,,,,,
-UN Geneva Office,Staff|Regular,UNA_ER_POST_ALLOWANCE,Both,True,2024-01-01,4712-12-31,1000,2100,3000,,,,,,
+UN Women,C-UN Volunteers-Intl.University-UNDP-,UNA_ER_RES_SEC,Cost,true,1951-01-01,4712-12-31,UNW,,,,7021,,,,
+United Nations Capital Development Fund,C-UN Volunteers-Intl.University-UNDP-,UNA_ER_RES_SEC,Cost,true,1951-01-01,4712-12-31,CDF,,,,7021,,,,

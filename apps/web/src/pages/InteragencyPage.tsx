@@ -4,6 +4,7 @@ import { useDropdowns } from "../hooks/useDataAll";
 import { api } from "../lib/api";
 import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
+import { exportCsv, flattenSegments } from "../lib/exportCsv";
 
 const SEGS = ["Agency","Operating Unit","Fund","Cost Centre","Account","Project","Donor","Interagency","Future"] as const;
 
@@ -52,15 +53,45 @@ export function InteragencyPage() {
 
   const selC = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
+  const handleExport = () => {
+    if (!filtered.length) return;
+    const flat = filtered.map((r: any) => ({
+      "Element":           elem,
+      "Interagency LE":    ia,
+      "Legal Employer":    r.legalEmployer,
+      "People Group 1":    r.peopleGroup1,
+      "People Group 2":    r.peopleGroup2,
+      "People Group 3":    r.peopleGroup3 ?? "",
+      "Eligible":          r.eligible ? "Yes" : "No",
+      "Cost Type":         r.type,
+      "Person Match":      r.personMatch ?? "",
+      "Dept Match":        r.deptMatch ?? "",
+      "Overrides Applied": (r.overridesApplied ?? []).join("; "),
+      ...flattenSegments(r),
+    }));
+    exportCsv(`interagency_${elem}_${ia}_${new Date().toISOString().slice(0,10)}.csv`, flat);
+  };
+
   if (ddLoading) return <LoadingPane label="Loading costing data..." />;
 
   return (
     <div className="space-y-4">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900">Costing Combinations - Interagency</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Final accounts with LE PPG EL override (rank 1) and LE segment override (rank 2) applied.
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">Costing Combinations - Interagency</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Final accounts with LE PPG EL override (rank 1) and LE segment override (rank 2) applied.
+          </p>
+        </div>
+        {filtered.length > 0 && (
+          <button onClick={handleExport}
+            className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-700">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export {filtered.length} rows
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-white border border-gray-200 rounded-xl p-4">

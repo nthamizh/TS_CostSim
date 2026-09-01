@@ -1,8 +1,266 @@
 legalEmployer,peopleGroup1,peopleGroup2,peopleGroup3
-United Nations HQ,Staff,Regular,Professional
-United Nations HQ,Staff,Regular,General Service
-United Nations HQ,Consultant,Temporary,
-UN Geneva Office,Staff,Regular,Professional
-UN Geneva Office,Staff,Regular,General Service
-UN Vienna Office,Staff,Regular,Professional
-UN Vienna Office,Individual Contractor,Temporary,
+UN Women,I-Staff-IP,UNDP,
+UN Women,I-TA-Staff-IP,UNDP,
+UN Women,W-UNV-International Volunteers(Regular/Specialists),UNDP,
+UN Women,G-Staff-GS,UNDP,
+UN Women,G-TA-Staff-GS,UNDP,
+UN Women,N-Staff-NO,UNDP,
+UN Women,N-TA-Staff-NO,UNDP,
+UN Women,S-Service Contract Holders,UNDP,
+UN Women,1-UN Volunteers-National Expert,UNDP,
+UN Women,2-UN Volunteers-International Expert,UNDP,
+UN Women,B-UN Volunteers-Intl.Youth,UNDP,
+UN Women,C-UN Volunteers-Intl.University,UNDP,
+UN Women,D-UN Volunteers-National Youth,UNDP,
+UN Women,Y-UNV-National Volunteers(Regular/Specialists),UNDP,
+UN Women,Z-UN Volunteers-Community Volunteers,UNDP,
+UN Women,E-UN Volunteers-National. University,UNDP,
+UN Women,O-National Personnel Service Agreement,UNDP,
+United Nations Capital Development Fund,I-Staff-IP,UNDP,
+United Nations Capital Development Fund,I-TA-Staff-IP,UNDP,
+United Nations Capital Development Fund,W-UNV-International Volunteers(Regular/Specialists),UNDP,
+United Nations Capital Development Fund,G-Staff-GS,UNDP,
+United Nations Capital Development Fund,G-TA-Staff-GS,UNDP,
+United Nations Capital Development Fund,N-Staff-NO,UNDP,
+United Nations Capital Development Fund,N-TA-Staff-NO,UNDP,
+United Nations Capital Development Fund,S-Service Contract Holders,UNDP,
+United Nations Capital Development Fund,1-UN Volunteers-National Expert,UNDP,
+United Nations Capital Development Fund,2-UN Volunteers-International Expert,UNDP,
+United Nations Capital Development Fund,B-UN Volunteers-Intl.Youth,UNDP,
+United Nations Capital Development Fund,C-UN Volunteers-Intl.University,UNDP,
+United Nations Capital Development Fund,D-UN Volunteers-National Youth,UNDP,
+United Nations Capital Development Fund,Y-UNV-National Volunteers(Regular/Specialists),UNDP,
+United Nations Capital Development Fund,Z-UN Volunteers-Community Volunteers,UNDP,
+United Nations Capital Development Fund,E-UN Volunteers-National. University,UNDP,
+United Nations Capital Development Fund,M-International Personnel Service Agreement,UNDP,
+United Nations Capital Development Fund,O-National Personnel Service Agreement,UNDP,
+United Nations Capital Development Fund,H-Internship,UNDP,
+United Nations Development Programme,I-Staff-IP,UNDP,
+United Nations Development Programme,I-Staff-IP,P - Payroll Only,
+United Nations Development Programme,I-Staff-IP,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,I-TA-Staff-IP,UNDP,
+United Nations Development Programme,I-TA-Staff-IP,P - Payroll Only,
+United Nations Development Programme,I-TA-Staff-IP,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,W-UNV-International Volunteers(Regular/Specialists),UNDP,
+United Nations Development Programme,W-UNV-International Volunteers(Regular/Specialists),P - Payroll Only,
+United Nations Development Programme,W-UNV-International Volunteers(Regular/Specialists),MIP - Medical/Insurance and Pension,
+United Nations Development Programme,G-Staff-GS,UNDP,
+United Nations Development Programme,G-Staff-GS,P - Payroll Only,
+United Nations Development Programme,G-Staff-GS,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,G-TA-Staff-GS,UNDP,
+United Nations Development Programme,G-TA-Staff-GS,P - Payroll Only,
+United Nations Development Programme,G-TA-Staff-GS,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,N-Staff-NO,UNDP,
+United Nations Development Programme,N-Staff-NO,P - Payroll Only,
+United Nations Development Programme,N-Staff-NO,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,N-TA-Staff-NO,UNDP,
+United Nations Development Programme,N-TA-Staff-NO,P - Payroll Only,
+United Nations Development Programme,N-TA-Staff-NO,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,S-Service Contract Holders,UNDP,
+United Nations Development Programme,S-Service Contract Holders,P - Payroll Only,
+United Nations Development Programme,S-Service Contract Holders,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,1-UN Volunteers-National Expert,UNDP,
+United Nations Development Programme,1-UN Volunteers-National Expert,P - Payroll Only,
+United Nations Development Programme,1-UN Volunteers-National Expert,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,2-UN Volunteers-International Expert,UNDP,
+United Nations Development Programme,2-UN Volunteers-International Expert,P - Payroll Only,
+United Nations Development Programme,2-UN Volunteers-International Expert,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,B-UN Volunteers-Intl.Youth,UNDP,
+United Nations Development Programme,B-UN Volunteers-Intl.Youth,P - Payroll Only,
+United Nations Development Programme,B-UN Volunteers-Intl.Youth,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,C-UN Volunteers-Intl.University,UNDP,
+United Nations Development Programme,C-UN Volunteers-Intl.University,P - Payroll Only,
+United Nations Development Programme,C-UN Volunteers-Intl.University,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,D-UN Volunteers-National Youth,UNDP,
+United Nations Development Programme,D-UN Volunteers-National Youth,P - Payroll Only,
+United Nations Development Programme,D-UN Volunteers-National Youth,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,Y-UNV-National Volunteers(Regular/Specialists),UNDP,
+United Nations Development Programme,Y-UNV-National Volunteers(Regular/Specialists),P - Payroll Only,
+United Nations Development Programme,Y-UNV-National Volunteers(Regular/Specialists),MIP - Medical/Insurance and Pension,
+United Nations Development Programme,Z-UN Volunteers-Community Volunteers,UNDP,
+United Nations Development Programme,Z-UN Volunteers-Community Volunteers,P - Payroll Only,
+United Nations Development Programme,Z-UN Volunteers-Community Volunteers,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,E-UN Volunteers-National. University,UNDP,
+United Nations Development Programme,E-UN Volunteers-National. University,P - Payroll Only,
+United Nations Development Programme,E-UN Volunteers-National. University,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,M-International Personnel Service Agreement,UNDP,
+United Nations Development Programme,O-National Personnel Service Agreement,UNDP,
+United Nations Development Programme,H-Internship,UNDP,
+United Nations Population Fund,I-Staff-IP,UNDP,
+United Nations Population Fund,I-TA-Staff-IP,UNDP,
+United Nations Population Fund,W-UNV-International Volunteers(Regular/Specialists),UNDP,
+United Nations Population Fund,G-Staff-GS,UNDP,
+United Nations Population Fund,G-TA-Staff-GS,UNDP,
+United Nations Population Fund,N-Staff-NO,UNDP,
+United Nations Population Fund,N-TA-Staff-NO,UNDP,
+United Nations Population Fund,S-Service Contract Holders,UNDP,
+United Nations Population Fund,1-UN Volunteers-National Expert,UNDP,
+United Nations Population Fund,2-UN Volunteers-International Expert,UNDP,
+United Nations Population Fund,B-UN Volunteers-Intl.Youth,UNDP,
+United Nations Population Fund,C-UN Volunteers-Intl.University,UNDP,
+United Nations Population Fund,D-UN Volunteers-National Youth,UNDP,
+United Nations Population Fund,Y-UNV-National Volunteers(Regular/Specialists),UNDP,
+United Nations Population Fund,Z-UN Volunteers-Community Volunteers,UNDP,
+United Nations Population Fund,E-UN Volunteers-National. University,UNDP,
+United Nations Population Fund,O-National Personnel Service Agreement,UNDP,
+United Nations Population Fund,H-Internship,UNDP,
+United Nations Institute for Training and Research,I-Staff-IP,UNDP,
+United Nations Institute for Training and Research,I-TA-Staff-IP,UNDP,
+United Nations Institute for Training and Research,G-Staff-GS,UNDP,
+United Nations Institute for Training and Research,G-TA-Staff-GS,UNDP,
+United Nations Institute for Training and Research,N-Staff-NO,UNDP,
+United Nations Institute for Training and Research,N-TA-Staff-NO,UNDP,
+United Nations Institute for Training and Research,T-Fellows,UNDP,
+United Nations System Staff College,I-Staff-IP,UNDP,
+United Nations System Staff College,I-TA-Staff-IP,UNDP,
+United Nations System Staff College,G-Staff-GS,UNDP,
+United Nations System Staff College,G-TA-Staff-GS,UNDP,
+United Nations System Staff College,N-Staff-NO,UNDP,
+United Nations System Staff College,N-TA-Staff-NO,UNDP,
+United Nations System Staff College,O-National Personnel Service Agreement,UNDP,
+United Nations Volunteers,I-Staff-IP,UNDP,
+United Nations Volunteers,I-TA-Staff-IP,UNDP,
+United Nations Volunteers,W-UNV-International Volunteers(Regular/Specialists),UNDP,
+United Nations Volunteers,G-Staff-GS,UNDP,
+United Nations Volunteers,G-TA-Staff-GS,UNDP,
+United Nations Volunteers,N-Staff-NO,UNDP,
+United Nations Volunteers,N-TA-Staff-NO,UNDP,
+United Nations Volunteers,1-UN Volunteers-National Expert,UNDP,
+United Nations Volunteers,2-UN Volunteers-International Expert,UNDP,
+United Nations Volunteers,B-UN Volunteers-Intl.Youth,UNDP,
+United Nations Volunteers,C-UN Volunteers-Intl.University,UNDP,
+United Nations Volunteers,D-UN Volunteers-National Youth,UNDP,
+United Nations Volunteers,Y-UNV-National Volunteers(Regular/Specialists),UNDP,
+United Nations Volunteers,Z-UN Volunteers-Community Volunteers,UNDP,
+United Nations Volunteers,E-UN Volunteers-National. University,UNDP,
+United Nations Volunteers,M-International Personnel Service Agreement,UNDP,
+United Nations Volunteers,O-National Personnel Service Agreement,UNDP,
+United Nations Volunteers,H-Internship,UNDP,
+World Meteorological Organization,I-Staff-IP,IA,WMO
+World Meteorological Organization,I-TA-Staff-IP,IA,WMO
+World Meteorological Organization,G-Staff-GS,IA,WMO
+World Meteorological Organization,G-TA-Staff-GS,IA,WMO
+World Meteorological Organization,N-Staff-NO,IA,WMO
+World Meteorological Organization,N-TA-Staff-NO,IA,WMO
+World Meteorological Organization,F-Interpreter,IA,WMO
+World Meteorological Organization,R-Translator,IA,WMO
+United Nations University,I-Staff-IP,UNDP,
+United Nations University,I-TA-Staff-IP,UNDP,
+United Nations University,W-UNV-International Volunteers(Regular/Specialists),UNDP,
+United Nations University,G-Staff-GS,UNDP,
+United Nations University,G-TA-Staff-GS,UNDP,
+United Nations University,N-Staff-NO,UNDP,
+United Nations University,N-TA-Staff-NO,UNDP,
+United Nations University,1-UN Volunteers-National Expert,UNDP,
+United Nations University,2-UN Volunteers-International Expert,UNDP,
+United Nations University,B-UN Volunteers-Intl.Youth,UNDP,
+United Nations University,C-UN Volunteers-Intl.University,UNDP,
+United Nations University,D-UN Volunteers-National Youth,UNDP,
+United Nations University,Y-UNV-National Volunteers(Regular/Specialists),UNDP,
+United Nations University,Z-UN Volunteers-Community Volunteers,UNDP,
+United Nations University,E-UN Volunteers-National. University,UNDP,
+United Nations University,P-Personnel Service Agreement(Only UNU),UNDP,
+International Civil Aviation Organization,I-Staff-IP,IA,ICAO-SUPN
+International Civil Aviation Organization,I-TA-Staff-IP,IA,ICAO-SUPN
+International Civil Aviation Organization,G-Staff-GS,IA,ICAO-SUPN
+International Civil Aviation Organization,G-TA-Staff-GS,IA,ICAO-SUPN
+International Civil Aviation Organization,N-Staff-NO,IA,ICAO-SUPN
+International Civil Aviation Organization,N-TA-Staff-NO,IA,ICAO-SUPN
+Multi-Partner Trust Fund Office,I-Staff-IP,UNDP,
+Multi-Partner Trust Fund Office,I-TA-Staff-IP,UNDP,
+Multi-Partner Trust Fund Office,G-Staff-GS,UNDP,
+Multi-Partner Trust Fund Office,G-TA-Staff-GS,UNDP,
+Multi-Partner Trust Fund Office,N-Staff-NO,UNDP,
+Multi-Partner Trust Fund Office,N-TA-Staff-NO,UNDP,
+International Agency for Research on Cancer,I-Staff-IP,IA,IARC
+International Agency for Research on Cancer,I-TA-Staff-IP,IA,IARC
+International Agency for Research on Cancer,G-Staff-GS,IA,IARC
+International Agency for Research on Cancer,G-TA-Staff-GS,IA,IARC
+International Agency for Research on Cancer,N-Staff-NO,IA,IARC
+International Agency for Research on Cancer,N-TA-Staff-NO,IA,IARC
+International Agency for Research on Cancer,T-Fellows,IA,IARC-ECVS
+International Agency for Research on Cancer,H-Internship,IA,IARC-ECVS
+International Agency for Research on Cancer,F-Interpreter,IA,IARC
+International Agency for Research on Cancer,R-Translator,IA,IARC
+UN Women,1 Volunteer National Expert,UNDP,
+United Nations Capital Development Fund,1 Volunteer National Expert,UNDP,
+United Nations Development Programme,1 Volunteer National Expert,UNDP,
+United Nations Development Programme,1 Volunteer National Expert,P - Payroll Only,
+United Nations Development Programme,1 Volunteer National Expert,MIP - Medical/Insurance and Pension,
+United Nations Population Fund,1 Volunteer National Expert,UNDP,
+United Nations Volunteers,1 Volunteer National Expert,UNDP,
+United Nations University,1 Volunteer National Expert,UNDP,
+UN Women,W Volunteer International Specialist,UNDP,
+UN Women,2 Volunteer International Expert,UNDP,
+UN Women,Y Volunteer National Specialist,UNDP,
+United Nations Capital Development Fund,W Volunteer International Specialist,UNDP,
+United Nations Capital Development Fund,2 Volunteer International Expert,UNDP,
+United Nations Capital Development Fund,Y Volunteer National Specialist,UNDP,
+United Nations Development Programme,W Volunteer International Specialist,UNDP,
+United Nations Development Programme,W Volunteer International Specialist,P - Payroll Only,
+United Nations Development Programme,W Volunteer International Specialist,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,2 Volunteer International Expert,UNDP,
+United Nations Development Programme,2 Volunteer International Expert,P - Payroll Only,
+United Nations Development Programme,2 Volunteer International Expert,MIP - Medical/Insurance and Pension,
+United Nations Development Programme,Y Volunteer National Specialist,UNDP,
+United Nations Development Programme,Y Volunteer National Specialist,P - Payroll Only,
+United Nations Development Programme,Y Volunteer National Specialist,MIP - Medical/Insurance and Pension,
+United Nations Population Fund,W Volunteer International Specialist,UNDP,
+United Nations Population Fund,2 Volunteer International Expert,UNDP,
+United Nations Population Fund,Y Volunteer National Specialist,UNDP,
+United Nations Volunteers,W Volunteer International Specialist,UNDP,
+United Nations Volunteers,2 Volunteer International Expert,UNDP,
+United Nations Volunteers,Y Volunteer National Specialist,UNDP,
+United Nations University,W Volunteer International Specialist,UNDP,
+United Nations University,2 Volunteer International Expert,UNDP,
+United Nations University,Y Volunteer National Specialist,UNDP,
+International Civil Aviation Organization,I-Staff-IP,IA,ICAO
+International Civil Aviation Organization,I-TA-Staff-IP,IA,ICAO
+International Civil Aviation Organization,G-Staff-GS,IA,ICAO
+International Civil Aviation Organization,G-TA-Staff-GS,IA,ICAO
+International Civil Aviation Organization,N-Staff-NO,IA,ICAO
+International Civil Aviation Organization,N-TA-Staff-NO,IA,ICAO
+International Civil Aviation Organization,I-Staff-IP,IA,ICAO-CDI
+International Civil Aviation Organization,I-TA-Staff-IP,IA,ICAO-CDI
+International Civil Aviation Organization,G-Staff-GS,IA,ICAO-CDI
+International Civil Aviation Organization,G-TA-Staff-GS,IA,ICAO-CDI
+International Civil Aviation Organization,N-Staff-NO,IA,ICAO-CDI
+International Civil Aviation Organization,N-TA-Staff-NO,IA,ICAO-CDI
+International Civil Aviation Organization,I-Staff-IP,IA,ICAO-OPAS
+International Civil Aviation Organization,I-TA-Staff-IP,IA,ICAO-OPAS
+International Civil Aviation Organization,G-Staff-GS,IA,ICAO-OPAS
+International Civil Aviation Organization,G-TA-Staff-GS,IA,ICAO-OPAS
+International Civil Aviation Organization,N-Staff-NO,IA,ICAO-OPAS
+International Civil Aviation Organization,N-TA-Staff-NO,IA,ICAO-OPAS
+World Meteorological Organization,I-Staff-IP,IA,WMO-GCOS
+World Meteorological Organization,I-TA-Staff-IP,IA,WMO-GCOS
+World Meteorological Organization,G-Staff-GS,IA,WMO-GCOS
+World Meteorological Organization,G-TA-Staff-GS,IA,WMO-GCOS
+World Meteorological Organization,N-Staff-NO,IA,WMO-GCOS
+World Meteorological Organization,N-TA-Staff-NO,IA,WMO-GCOS
+World Meteorological Organization,F-Interpreter,IA,WMO-GCOS
+World Meteorological Organization,R-Translator,IA,WMO-GCOS
+World Meteorological Organization,I-Staff-IP,IA,WMO-GEO
+World Meteorological Organization,I-TA-Staff-IP,IA,WMO-GEO
+World Meteorological Organization,G-Staff-GS,IA,WMO-GEO
+World Meteorological Organization,G-TA-Staff-GS,IA,WMO-GEO
+World Meteorological Organization,N-Staff-NO,IA,WMO-GEO
+World Meteorological Organization,N-TA-Staff-NO,IA,WMO-GEO
+World Meteorological Organization,F-Interpreter,IA,WMO-GEO
+World Meteorological Organization,R-Translator,IA,WMO-GEO
+World Meteorological Organization,I-Staff-IP,IA,WMO-IPCC
+World Meteorological Organization,I-TA-Staff-IP,IA,WMO-IPCC
+World Meteorological Organization,G-Staff-GS,IA,WMO-IPCC
+World Meteorological Organization,G-TA-Staff-GS,IA,WMO-IPCC
+World Meteorological Organization,N-Staff-NO,IA,WMO-IPCC
+World Meteorological Organization,N-TA-Staff-NO,IA,WMO-IPCC
+World Meteorological Organization,F-Interpreter,IA,WMO-IPCC
+World Meteorological Organization,R-Translator,IA,WMO-IPCC
+World Meteorological Organization,I-Staff-IP,IA,WMO-JPO
+World Meteorological Organization,I-TA-Staff-IP,IA,WMO-JPO
+World Meteorological Organization,G-Staff-GS,IA,WMO-JPO
+World Meteorological Organization,G-TA-Staff-GS,IA,WMO-JPO
+World Meteorological Organization,N-Staff-NO,IA,WMO-JPO
+World Meteorological Organization,N-TA-Staff-NO,IA,WMO-JPO
+World Meteorological Organization,F-Interpreter,IA,WMO-JPO
+World Meteorological Organization,R-Translator,IA,WMO-JPO

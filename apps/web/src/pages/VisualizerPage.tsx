@@ -153,7 +153,7 @@ export function VisualizerPage() {
             Reset
           </button>
         </div>
-        {simErr && <p className="mt-2 text-sm text-red-600">{(simErr as Error).message}</p>}
+        {simErr && <p className="mt-2 text-sm text-red-600">{simErr instanceof Error ? simErr.message : JSON.stringify(simErr)}</p>}
       </div>
 
       {result && !result.eligible && (

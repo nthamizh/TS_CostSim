@@ -129,25 +129,36 @@ costingRouter.get("/dropdowns",
 
 // ---------------------------------------------------------------------------
 // GET /v1/costing/eligibility?elem=&acctType=&date=
-// For each valid combination: whether it is eligible for elem+acctType
-// and which eligibility record + segment values it resolves to.
+// acctType: "Cost Account" | "Offset Account" | "both" (default = both)
+// Returns an accountType field on every row so the client can display or
+// filter without a second request.
 // ---------------------------------------------------------------------------
 costingRouter.get("/eligibility",
   requirePermission("viewSimulate"),
   asyncHandler(async (req, res) => {
-    const { elem, acctType = "Cost Account", date: dateStr } = req.query as Record<string, string>;
+    const { elem, acctType = "both", date: dateStr } = req.query as Record<string, string>;
     if (!elem) { res.status(422).json({ success: false, error: "elem is required" }); return; }
 
     const eid  = req.serviceToken.enterpriseId;
     const date = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
 
-    const [elig, combos] = await Promise.all([
-      (await loadDataSources(eid)).eligibility,
+    const [dataSrc, combos] = await Promise.all([
+      loadDataSources(eid),
       loadCombos(eid),
     ]);
+    const elig = dataSrc.eligibility;
 
-    const rows = computeEligibilityGrid(combos as any, elig as any, elem, acctType, date);
-    res.json({ success: true, data: rows });
+    if (acctType === "both") {
+      const cost   = computeEligibilityGrid(combos as any, elig as any, elem, "Cost Account",   date)
+                       .map(r => ({ ...r, accountType: "Cost Account" }));
+      const offset = computeEligibilityGrid(combos as any, elig as any, elem, "Offset Account", date)
+                       .map(r => ({ ...r, accountType: "Offset Account" }));
+      res.json({ success: true, data: [...cost, ...offset] });
+    } else {
+      const rows = computeEligibilityGrid(combos as any, elig as any, elem, acctType, date)
+                     .map(r => ({ ...r, accountType: acctType }));
+      res.json({ success: true, data: rows });
+    }
   })
 );
 

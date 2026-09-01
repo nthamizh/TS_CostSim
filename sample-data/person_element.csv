@@ -1,3 +1,4 @@
 personNumber,assignmentNumber,element,personType,department,personAgency,legalEntity,peopleGroup,percentage,parStartDate,parEndDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-100001,E100001A01,UNA_ER_SALARY,Employee,OFFICE OF HUMAN RESOURCES,,United Nations HQ,Staff|Regular|Professional,70,2024-01-01,4712-12-31,1000,2000,3002,,,,,,
-100001,E100001A01,UNA_ER_SALARY,Employee,OFFICE OF LEGAL AFFAIRS,,United Nations HQ,Staff|Regular|Professional,30,2024-01-01,4712-12-31,1000,2000,3003,,,,,,
+80612,E00080612,UNA_ER_RES_SEC,Staff,33055 - Ethiopia-WFP,UNW,UN Women,G-Staff-GS,100,2025-01-01,4712-12-31,UNDP,ETH,12000,33055,,10038,37,0,0
+2588,E002588,UNA_ER_RES_SEC,Staff,48650 - Bolivia-UN Sister Agency,DCP,United Nations Development Programme,G-Staff-GS,100,2025-01-01,4712-12-31,UNDP,BOL,12000,48601,,10015,1863,0,0
+576930,E00576930,UNA_ER_RES_SEC,Staff,34250 - Kenya-UN Sister Agency,OCH,United Nations Development Programme,N-Staff-NO,100,2025-01-01,4712-12-31,,KEN,12000,34250,,10060,38,0,0

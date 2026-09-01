@@ -1,17 +1,170 @@
 category,value,sortOrder
-Legal Employer,United Nations HQ,1
-Legal Employer,UN Geneva Office,2
-Legal Employer,UN Vienna Office,3
-People Group 1,Staff,1
-People Group 1,Consultant,2
-People Group 1,Individual Contractor,3
-People Group 2,Regular,1
-People Group 2,Temporary,2
-People Group 3,Professional,1
-People Group 3,General Service,2
-Agency,UNDP,1
-Agency,UNICEF,2
-Agency,UNHCR,3
-Contract Clause,Fixed-Term,1
-Contract Clause,Continuing,2
-Contract Clause,Temporary Appointment,3
+Legal Employer,International Agency for Research on Cancer,1
+Legal Employer,UN Women,2
+Legal Employer,United Nations Capital Development Fund,3
+Legal Employer,United Nations Development Programme,4
+Legal Employer,United Nations Population Fund,5
+Legal Employer,United Nations Institute for Training and Research,6
+Legal Employer,United Nations System Staff College,7
+Legal Employer,United Nations Volunteers,8
+Legal Employer,World Meteorological Organization,9
+Legal Employer,United Nations University,10
+Legal Employer,International Civil Aviation Organization,11
+Legal Employer,Multi-Partner Trust Fund Office,12
+People Group 1 (Eligibility Group),1 Volunteer National Expert,1
+People Group 1 (Eligibility Group),1-UN Volunteers-National Expert,2
+People Group 1 (Eligibility Group),2 Volunteer International Expert,3
+People Group 1 (Eligibility Group),2-UN Volunteers-International Expert,4
+People Group 1 (Eligibility Group),3 Volunteer National Associate,5
+People Group 1 (Eligibility Group),4 Volunteer International Associate,6
+People Group 1 (Eligibility Group),B-UN Volunteers-Intl.Youth,7
+People Group 1 (Eligibility Group),C-UN Volunteers-Intl.University,8
+People Group 1 (Eligibility Group),D-UN Volunteers-National Youth,9
+People Group 1 (Eligibility Group),E-UN Volunteers-National. University,10
+People Group 1 (Eligibility Group),F-Interpreter,11
+People Group 1 (Eligibility Group),G-Staff-GS,12
+People Group 1 (Eligibility Group),G-TA-Staff-GS,13
+People Group 1 (Eligibility Group),H-Internship,14
+People Group 1 (Eligibility Group),I-Staff-IP,15
+People Group 1 (Eligibility Group),I-TA-Staff-IP,16
+People Group 1 (Eligibility Group),M-International Personnel Service Agreement,17
+People Group 1 (Eligibility Group),N-Staff-NO,18
+People Group 1 (Eligibility Group),N-TA-Staff-NO,19
+People Group 1 (Eligibility Group),O-National Personnel Service Agreement,20
+People Group 1 (Eligibility Group),P-Personnel Service Agreement(Only UNU),21
+People Group 1 (Eligibility Group),R-Translator,22
+People Group 1 (Eligibility Group),S-Service Contract Holders,23
+People Group 1 (Eligibility Group),T-Fellows,24
+People Group 1 (Eligibility Group),W Volunteer International Specialist,25
+People Group 1 (Eligibility Group),W-UNV-International Volunteers(Regular/Specialists),26
+People Group 1 (Eligibility Group),Y Volunteer National Specialist,27
+People Group 1 (Eligibility Group),Y-UNV-National Volunteers(Regular/Specialists),28
+People Group 1 (Eligibility Group),Z Volunteer National Community,29
+People Group 1 (Eligibility Group),Z-UN Volunteers-Community Volunteers,30
+People Group 2 (Arrangement Type),UNDP,1
+People Group 2 (Arrangement Type),MIP - Medical/Insurance and Pension,2
+People Group 2 (Arrangement Type),P - Payroll Only,3
+People Group 2 (Arrangement Type),IA,4
+People Group 3 (Agency Type),IARC,1
+People Group 3 (Agency Type),IARC-ECVS,2
+People Group 3 (Agency Type),ICAO,3
+People Group 3 (Agency Type),ICAO-CDI,4
+People Group 3 (Agency Type),ICAO-OPAS,5
+People Group 3 (Agency Type),ICAO-SUPN,6
+People Group 3 (Agency Type),WMO,7
+People Group 3 (Agency Type),WMO-GCOS,8
+People Group 3 (Agency Type),WMO-GEO,9
+People Group 3 (Agency Type),WMO-IPCC,10
+People Group 3 (Agency Type),WMO-JPO,11
+Contract Clause,JPO,1
+Agencies,FPA,1
+Agencies,MIC,2
+Agencies,GSC,3
+Agencies,IAP,4
+Agencies,CF,5
+Agencies,DGC,6
+Agencies,HCR,7
+Agencies,CAO,8
+Agencies,SOM,9
+Agencies,DIS,10
+Agencies,ISA,11
+Agencies,UNV,12
+Agencies,AMA,13
+Agencies,OPS,14
+Agencies,APG,15
+Agencies,WHO-JPO,16
+Agencies,EOY,17
+Agencies,AEA,18
+Agencies,AID,19
+Agencies,DCO,20
+Agencies,PAH,21
+Agencies,NOV,22
+Agencies,ICR,23
+Agencies,UN,24
+Agencies,EP,25
+Agencies,SEC,26
+Agencies,WMO,27
+Agencies,UPU,28
+Agencies,FAO,29
+Agencies,FAD,30
+Agencies,CTB,31
+Agencies,CCC,32
+Agencies,CHR,33
+Agencies,DP,34
+Agencies,AMI,35
+Agencies,ECL,36
+Agencies,OSA,37
+Agencies,CTD,38
+Agencies,CCD,39
+Agencies,ESC,40
+Agencies,CPD,41
+Agencies,OCT,42
+Agencies,SAC,43
+Agencies,OWA,44
+Agencies,ESW,45
+Agencies,CDF,46
+Agencies,IUH,47
+Agencies,IDO,48
+Agencies,IOM,49
+Agencies,MSS,50
+Agencies,MAS,51
+Agencies,IFC,52
+Agencies,OCA,53
+Agencies,ECA,54
+Agencies,WFP,55
+Agencies,CHS,56
+Agencies,UNU,57
+Agencies,RCC,58
+Agencies,ROM,59
+Agencies,RCO,60
+Agencies,VMC,61
+Agencies,ICT,62
+Agencies,CFB,63
+Agencies,EAS,64
+Agencies,SFA,65
+Agencies,MNU,66
+Agencies,GOV,67
+Agencies,PBS,68
+Agencies,TAD,69
+Agencies,RSE,70
+Agencies,RSO,71
+Agencies,FEM,72
+Agencies,DPO,73
+Agencies,DOS,74
+Agencies,PPA,75
+Agencies,OCH,76
+Agencies,IARC,77
+Agencies,NON,78
+Agencies,OSC,79
+Agencies,SCO,80
+Agencies,ICC,81
+Agencies,DCP,82
+Agencies,REL,83
+Agencies,IMO,84
+Agencies,ODA,85
+Agencies,MIK,86
+Agencies,REC,87
+Agencies,IB,88
+Agencies,ITC,89
+Agencies,WHO,90
+Agencies,TAM,91
+Agencies,MCA,92
+Agencies,NIC,93
+Agencies,UNT,94
+Agencies,WAS,95
+Agencies,ITU,96
+Agencies,MDC,97
+Agencies,SSC,98
+Agencies,WTO,99
+Agencies,RA,100
+Agencies,SDR,101
+Agencies,SML,102
+Agencies,TLD,103
+Agencies,ILO,104
+Agencies,SCE,105
+Agencies,TAR,106
+Agencies,WIP,107
+Agencies,SGL,108
+Agencies,SOS,109
+Account Type,Cost Account,1
+Account Type,Offset Account,2

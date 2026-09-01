@@ -17,7 +17,12 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     },
   });
   const json = await res.json();
-  if (!res.ok || !json.success) throw new Error(json.error ?? `HTTP ${res.status}`);
+  if (!res.ok || !json.success) {
+    const msg = typeof json.error === "string"
+      ? json.error
+      : JSON.stringify(json.error ?? `HTTP ${res.status}`);
+    throw new Error(msg);
+  }
   return json.data as T;
 }
 

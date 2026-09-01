@@ -1,5 +1,49 @@
 elementName,eligibility,accountType,eligibilityStartDate,eligibilityEndDate,legalEmployer,peopleGroup1,peopleGroup2,peopleGroup3,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-UNA_ER_SALARY,All Staff Regular,Cost Account,2024-01-01,4712-12-31,United Nations HQ,Staff,Regular,,1000,2000,3000,,,,,,
-UNA_ER_SALARY,All Staff Regular,Offset Account,2024-01-01,4712-12-31,United Nations HQ,Staff,Regular,,9000,2000,3000,,,,,,
-UNA_ER_POST_ALLOWANCE,Professional Staff,Cost Account,2024-01-01,4712-12-31,,Staff,Regular,Professional,1000,2100,3000,,,,,,
-UNA_ER_CONS_FEE,Consultants,Cost Account,2024-01-01,4712-12-31,,Consultant,,,1000,2500,3000,,,,,,
+UNA_ER_NR_RES_SEC,UNA_ER_NR_RES_SEC_O,Cost Account,01/01/1951,31/12/4712,,,,,,,,,71515,,,,
+UNA_ER_NR_RES_SEC,UNA_ER_NR_RES_SEC_O,Offset Account,01/01/1951,31/12/4712,,,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_NR_RES_SEC Retroactive,UNA_ER_NR_RES_SEC Retroactive_O,Cost Account,01/01/1951,31/12/4712,,,,,,,,,71515,,,,
+UNA_ER_NR_RES_SEC Retroactive,UNA_ER_NR_RES_SEC Retroactive_O,Offset Account,01/01/1951,31/12/4712,,,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_1,Cost Account,01/01/1951,31/12/4712,,1-UN Volunteers-National Expert,,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_1,Offset Account,01/01/1951,31/12/4712,,1-UN Volunteers-National Expert,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_1_1,Cost Account,01/04/2026,31/12/4712,,1 Volunteer National Expert,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_1_1,Offset Account,01/04/2026,31/12/4712,,1 Volunteer National Expert,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_2,Cost Account,01/01/1951,31/12/4712,,2-UN Volunteers-International Expert,,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_2,Offset Account,01/01/1951,31/12/4712,,2-UN Volunteers-International Expert,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_2_2,Cost Account,01/04/2026,31/12/4712,,2 Volunteer International Expert,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_2_2,Offset Account,01/04/2026,31/12/4712,,2 Volunteer International Expert,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_4,Cost Account,01/04/2026,31/12/4712,,4 Volunteer International Associate,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_4,Offset Account,01/04/2026,31/12/4712,,4 Volunteer International Associate,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_B,Cost Account,01/01/1951,31/12/4712,,B-UN Volunteers-Intl.Youth,,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_B,Offset Account,01/01/1951,31/12/4712,,B-UN Volunteers-Intl.Youth,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_C,Cost Account,01/01/1951,31/12/4712,,C-UN Volunteers-Intl.University,,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_C,Offset Account,01/01/1951,31/12/4712,,C-UN Volunteers-Intl.University,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_W,Cost Account,01/01/1951,31/12/4712,,W-UNV-International Volunteers(Regular/Specialists),,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_W,Offset Account,01/01/1951,31/12/4712,,W-UNV-International Volunteers(Regular/Specialists),,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_W_W,Cost Account,01/04/2026,31/12/4712,,W Volunteer International Specialist,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_W_W,Offset Account,01/04/2026,31/12/4712,,W Volunteer International Specialist,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_Y,Cost Account,01/01/1951,31/12/4712,,Y-UNV-National Volunteers(Regular/Specialists),,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_Y,Offset Account,01/01/1951,31/12/4712,,Y-UNV-National Volunteers(Regular/Specialists),,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_Y_Y,Cost Account,01/04/2026,31/12/4712,,Y Volunteer National Specialist,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC,UNA_ER_RES_SEC_PG_EG_Y_Y,Offset Account,01/04/2026,31/12/4712,,Y Volunteer National Specialist,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_1,Cost Account,01/01/1951,31/12/4712,,1-UN Volunteers-National Expert,,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_1,Offset Account,01/01/1951,31/12/4712,,1-UN Volunteers-National Expert,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_1_1,Cost Account,01/04/2026,31/12/4712,,1 Volunteer National Expert,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_1_1,Offset Account,01/04/2026,31/12/4712,,1 Volunteer National Expert,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_2,Cost Account,01/01/1951,31/12/4712,,2-UN Volunteers-International Expert,,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_2,Offset Account,01/01/1951,31/12/4712,,2-UN Volunteers-International Expert,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_2_2,Cost Account,01/04/2026,31/12/4712,,2 Volunteer International Expert,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_2_2,Offset Account,01/04/2026,31/12/4712,,2 Volunteer International Expert,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_4,Cost Account,01/04/2026,31/12/4712,,4 Volunteer International Associate,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_4,Offset Account,01/04/2026,31/12/4712,,4 Volunteer International Associate,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_B,Cost Account,01/01/1951,31/12/4712,,B-UN Volunteers-Intl.Youth,,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_B,Offset Account,01/01/1951,31/12/4712,,B-UN Volunteers-Intl.Youth,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_C,Cost Account,01/01/1951,31/12/4712,,C-UN Volunteers-Intl.University,,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_C,Offset Account,01/01/1951,31/12/4712,,C-UN Volunteers-Intl.University,,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_W,Cost Account,01/01/1951,31/12/4712,,W-UNV-International Volunteers(Regular/Specialists),,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_W,Offset Account,01/01/1951,31/12/4712,,W-UNV-International Volunteers(Regular/Specialists),,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_W_W,Cost Account,01/04/2026,31/12/4712,,W Volunteer International Specialist,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_W_W,Offset Account,01/04/2026,31/12/4712,,W Volunteer International Specialist,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_Y,Cost Account,01/01/1951,31/12/4712,,Y-UNV-National Volunteers(Regular/Specialists),,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_Y,Offset Account,01/01/1951,31/12/4712,,Y-UNV-National Volunteers(Regular/Specialists),,,UNDP,H17,1,0,21012,0,0,0,0
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_Y_Y,Cost Account,01/04/2026,31/12/4712,,Y Volunteer National Specialist,UNDP,,,,,,71515,,,,
+UNA_ER_RES_SEC Retroactive,UNA_ER_RES_SEC Retroactive_PG_EG_Y_Y,Offset Account,01/04/2026,31/12/4712,,Y Volunteer National Specialist,UNDP,,UNDP,H17,1,0,21012,0,0,0,0
