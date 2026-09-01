@@ -51,10 +51,11 @@ function decodeWebhookToken(req: any): (CostSimServiceToken & { runId?: string }
   for (const secret of secrets) {
     try {
       return jwt.verify(token, secret) as CostSimServiceToken & { runId?: string };
-    } catch {
-      // Try next secret
+    } catch (err) {
+      console.error("[ETL auth] jwt.verify failed with secret ending", secret.slice(-4), ":", (err as Error).message);
     }
   }
+  console.error("[ETL auth] all secrets exhausted — token rejected. Auth header present:", !!token);
   return null;
 }
 
