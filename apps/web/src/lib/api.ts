@@ -57,6 +57,14 @@ export const api = {
   }) =>
     request(`/costing/interagency?${new URLSearchParams(Object.entries(params).filter(([,v]) => v) as [string,string][])}`),
 
+  // Enterprise config
+  getConfig: () =>
+    request("/costing/config"),
+  getConfigForEnterprise: (enterpriseId: string) =>
+    request(`/costing/config/${enterpriseId}`),
+  saveConfig: (body: Record<string, unknown>) =>
+    request("/costing/config", { method: "PUT", body: JSON.stringify(body) }),
+
   // Raw table data for Synced Data page
   getData: (table: string) =>
     request(`/costing/data/${table}`),

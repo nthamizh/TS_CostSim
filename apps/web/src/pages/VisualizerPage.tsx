@@ -1,12 +1,11 @@
 import { useState, useMemo } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
+import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
 import { api } from "../lib/api";
 import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 import type { SimResult, HierarchyLevel } from "@costsim/types";
-
-const SEGS = ["Agency","Operating Unit","Fund","Cost Centre","Account","Project","Donor","Interagency","Future"] as const;
 
 type FormState = {
   elementName: string; assignmentNumber: string; legalEntity: string;
@@ -27,6 +26,8 @@ const lbl = "block text-[10px] font-semibold text-gray-400 uppercase tracking-wi
 
 export function VisualizerPage() {
   const { data: dd, isLoading, error: ddErr } = useDropdowns();
+  const SEGS        = useSegmentNames();
+  const activeRanks = useActiveRanks();
   const [form, setForm] = useState<FormState>(empty);
   const [result, setResult] = useState<SimResult | null>(null);
   const [entrySegs, setEntrySegs] = useState<(string|null)[]>(Array(9).fill(null));
@@ -183,14 +184,14 @@ export function VisualizerPage() {
           </div>
 
           <LadderTable title="Cost account" sub="rank 1 wins per segment"
-            levels={result.cost.levels} final={result.cost.segments}
+            levels={result.cost.levels.filter(L => activeRanks.has(L.rank))} final={result.cost.segments}
             finalLabel="Final cost account"
             entrySegs={entrySegs}
             onEntryChange={(i, v) => setEntrySegs(p => { const n = [...p]; n[i] = v||null; return n; })} />
 
           {result.offset && (
             <LadderTable title="Offset account" sub="eligibility offset, then final cost"
-              levels={result.offset.levels} final={result.offset.segments}
+              levels={result.offset.levels.filter(L => activeRanks.has(L.rank))} final={result.offset.segments}
               finalLabel="Final offset account" />
           )}
 

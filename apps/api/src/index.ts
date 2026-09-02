@@ -8,7 +8,8 @@ import { requireServiceToken } from "./middleware/auth.js";
 import { notFoundHandler, errorHandler } from "./middleware/errorHandler.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { costingRouter } from "./modules/costing/costing.routes.js";
-import { etlRouter } from "./modules/etl/etl.routes.js";
+import { etlRouter }    from "./modules/etl/etl.routes.js";
+import { configRouter } from "./modules/costing/config.routes.js";
 
 const app = express();
 app.disable("x-powered-by");
@@ -30,7 +31,8 @@ app.use("/health", healthRouter);
 // All costing endpoints require Platform's service token
 app.use("/v1/costing", costingRouter);
 // ETL webhook (token verified inside the handler — same secret, scheduler pattern)
-app.use("/v1/jobs", etlRouter);
+app.use("/v1/jobs",    etlRouter);
+app.use("/v1/costing", configRouter);
 
 app.use(notFoundHandler);
 app.use(errorHandler);

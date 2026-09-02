@@ -12,7 +12,8 @@ import { VisualizerPage } from "./pages/VisualizerPage";
 import { EligibilityPage } from "./pages/EligibilityPage";
 import { CombinationsPage } from "./pages/CombinationsPage";
 import { InteragencyPage } from "./pages/InteragencyPage";
-import { DataPage } from "./pages/DataPage";
+import { DataPage }  from "./pages/DataPage";
+import { SetupPage } from "./pages/SetupPage";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1 } } });
 
@@ -37,6 +38,7 @@ export default function CostSimApp({
   const canSimulate    = isPlatformAdmin || !!permissions?.viewSimulate;
   const canInteragency = isPlatformAdmin || !!permissions?.viewSimulate || !!permissions?.viewInteragency;
   const canData        = isPlatformAdmin || !!permissions?.manageData;
+  const canSetup       = isPlatformAdmin || !!permissions?.manageData;
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -50,6 +52,7 @@ export default function CostSimApp({
         )}
         {canInteragency && <Route path="interagency" element={<InteragencyPage />} />}
         {canData        && <Route path="data"        element={<DataPage />} />}
+        {canSetup       && <Route path="setup"       element={<SetupPage />} />}
         <Route path="*" element={<Navigate to="" />} />
       </Routes>
     </QueryClientProvider>

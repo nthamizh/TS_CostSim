@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
+import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
 import { api } from "../lib/api";
 import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 import { exportCsv, flattenSegments } from "../lib/exportCsv";
-
-const SEGS = ["Agency","Operating Unit","Fund","Cost Centre","Account","Project","Donor","Interagency","Future"] as const;
 
 const LEGEND = [
   { cls: "bg-teal-50 border-teal-300",  label: "LE PPG EL override (rank 1)" },
@@ -16,6 +15,8 @@ const LEGEND = [
 
 export function InteragencyPage() {
   const { data: dd, isLoading: ddLoading } = useDropdowns();
+  // Segment names switch dynamically when an interagency LE is selected
+  const SEGS = useSegmentNames(ia || undefined);
   const [elem, setElem]         = useState("");
   const [ia, setIa]             = useState("");
   const [atype, setAtype]       = useState("SCA agency");

@@ -286,13 +286,17 @@ export function computeCombinationsGrid(
   // These show what the final account would look like IF dept/person costing
   // were configured for every combination — they participate in the merge at
   // the correct rank so FF/eligibility can still override individual segments.
+  // Segment 5 (Account) is intentionally excluded — it is element-specific
+  // and should never default, so it stays null even with placeholders active.
   const DEPT_PLACEHOLDER = [
     "Dept Agency","Dept Operating Unit","Dept Fund","Dept Cost Centre",
-    "Dept Account","Dept Project","Dept Donor","Dept Interagency","Dept Future",
+    null,
+    "Dept Project","Dept Donor","Dept Interagency","Dept Future",
   ] as (string|null)[];
   const PERS_PLACEHOLDER = [
     "Pers Agency","Pers Operating Unit","Pers Fund","Pers Cost Centre",
-    "Pers Account","Pers Project","Pers Donor","Pers Interagency","Pers Future",
+    null,
+    "Pers Project","Pers Donor","Pers Interagency","Pers Future",
   ] as (string|null)[];
 
   const out: ComboResultRow[] = [];

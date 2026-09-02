@@ -1,17 +1,17 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
+import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
 import { api } from "../lib/api";
 import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 import { exportCsv, flattenSegments } from "../lib/exportCsv";
 
-const SEGS = ["Agency","Operating Unit","Fund","Cost Centre","Account","Project","Donor","Interagency","Future"] as const;
-
 const selC = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
 export function EligibilityPage() {
   const { data: dd, isLoading: ddLoading } = useDropdowns();
+  const SEGS = useSegmentNames();
   const [elem,      setElem]   = useState("");
   const [leFilter,  setLE]     = useState("");
   const [pg1Filter, setPG1]    = useState("");

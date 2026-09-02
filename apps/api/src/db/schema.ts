@@ -294,3 +294,35 @@ export const etlRuns = pgTable(
     index("costsim_etl_runs_run_idx").on(t.platformRunId),
   ],
 );
+
+// ── Enterprise configuration ──────────────────────────────────────────────────
+// One row per enterprise. Stores:
+//   segmentNames     - custom labels for seg1..seg9 (enterprise-wide)
+//   leSegmentNames   - per-LE custom labels for interagency page only
+//                      { "LE name": ["s1","s2",...,"s9"] }
+//   activeRanks      - which costing hierarchy ranks are used by this enterprise
+//                      stored as comma-separated rank numbers e.g. "1,2,3,4,7,8"
+export const enterpriseConfig = pgTable(
+  "costsim_enterprise_config",
+  {
+    id:             uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:   uuid("enterprise_id").notNull().unique(),
+    // 9 segment names, JSON array: ["Agency","OU","Fund",...] 
+    segmentNames:   text("segment_names").notNull().default(
+      '["Segment 1","Segment 2","Segment 3","Segment 4","Segment 5","Segment 6","Segment 7","Segment 8","Segment 9"]'
+    ),
+    // per-LE segment names for interagency page, JSON object
+    // { "UN Women": ["Agency","OU",...], ... }
+    leSegmentNames: text("le_segment_names").notNull().default("{}"),
+    // Active costing hierarchy ranks, JSON array of integers
+    // All 9 active by default: [1,2,3,4,5,6,7,8,9]
+    activeRanks:    text("active_ranks").notNull().default(
+      "[1,2,3,4,5,6,7,8,9]"
+    ),
+    updatedAt:      timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+    updatedBy:      uuid("updated_by"),
+  },
+  t => [
+    index("costsim_config_ent_idx").on(t.enterpriseId),
+  ],
+);

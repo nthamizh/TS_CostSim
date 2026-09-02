@@ -1,21 +1,11 @@
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
+import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
 import { api } from "../lib/api";
 import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 import { exportCsv, flattenSegments } from "../lib/exportCsv";
-
-const isPlaceholder = (v: string|null) =>
-  v !== null && (v.startsWith("Dept ") || v.startsWith("Pers "));
-
-const SEGS = ["Agency","Operating Unit","Fund","Cost Centre","Account","Project","Donor","Interagency","Future"] as const;
-
-// Placeholder segment labels for the dept/person costing layer columns.
-// When no real data exists for a combination those ranks show these labels
-// so the consultant can see which segments WOULD be populated at that rank.
-const DEPT_SEG_LABELS  = SEGS.map(s => `Dept ${s}`);
-const PERS_SEG_LABELS  = SEGS.map(s => `Pers ${s}`);
 
 const LEGEND = [
   { s: "ff",   label: "Fast formula override",   cls: "bg-amber-50 border-amber-300" },
@@ -24,29 +14,28 @@ const LEGEND = [
   { s: "elig", label: "Element eligibility",      cls: "bg-green-50 border-green-300" },
   { s: "cost", label: "Final cost (offset only)", cls: "bg-gray-100 border-gray-300" },
 ];
-// Shown in legend only when a layer checkbox is active
-const PLACEHOLDER_LEGEND = "italic text-gray-400 — placeholder (no real data configured for this combination)";
+
+const isPlaceholder = (v: string|null) =>
+  v !== null && (v.startsWith("Dept ") || v.startsWith("Pers "));
 
 const selC = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400";
 const lbl  = "text-[10px] font-semibold text-gray-400 uppercase tracking-wider";
 
 export function CombinationsPage() {
   const { data: dd, isLoading: ddLoading } = useDropdowns();
+  const SEGS = useSegmentNames();
 
-  // Server-side filters
-  const [elem,      setElem]    = useState("");
-  const [agency,    setAgency]  = useState("");
-  const [cc,        setCc]      = useState("");
-  const [costType,  setCType]   = useState("Both");
-  const [leFilter,  setLE]      = useState("");
-  const [pg1Filter, setPG1]     = useState("");
-  const [pg2Filter, setPG2]     = useState("");
-  const [eligOnly,  setEO]      = useState(false);
-
-  // Client-side display options
+  const [elem,      setElem]   = useState("");
+  const [agency,    setAgency] = useState("");
+  const [cc,        setCc]     = useState("");
+  const [costType,  setCType]  = useState("Both");
+  const [leFilter,  setLE]     = useState("");
+  const [pg1Filter, setPG1]    = useState("");
+  const [pg2Filter, setPG2]    = useState("");
+  const [eligOnly,  setEO]     = useState(false);
   const [showDept,  setShowDept] = useState(false);
   const [showPers,  setShowPers] = useState(false);
-  const [filter,    setFilter]   = useState("");
+  const [filter,    setFilter]  = useState("");
 
   const lov    = dd?.lov ?? {};
   const pg1Key = Object.keys(lov).find(k => k.toLowerCase().includes("people group 1")) ?? "People Group 1";
@@ -57,7 +46,7 @@ export function CombinationsPage() {
     leFilter: leFilter||"", pg1Filter: pg1Filter||"", pg2Filter: pg2Filter||"",
     costType, eligOnly: eligOnly ? "true" : "",
     includeDept: showDept ? "true" : "",
-    includePers:  showPers ? "true" : "",
+    includePers:  showPers  ? "true" : "",
   };
 
   const { data: rows, isFetching, error } = useQuery({
@@ -78,36 +67,20 @@ export function CombinationsPage() {
 
   const handleExport = () => {
     if (!filtered.length) return;
-    const flat = filtered.map((r: any) => {
-      const base: Record<string, unknown> = {
-        "Element":        elem,
-        "Legal Employer": r.legalEmployer,
-        "People Group 1": r.peopleGroup1,
-        "People Group 2": r.peopleGroup2,
-        "People Group 3": r.peopleGroup3 ?? "",
-        "Eligible":       r.eligible ? "Yes" : "No",
-        "Cost Type":      r.type,
-        "FF Rule":        r.ffRule ?? "",
-        "FF Rank":        r.ffRank ?? "",
-        "Person Match":   r.personMatch ?? "",
-        "Dept Match":     r.deptMatch ?? "",
-      };
-      // Final resolved segments
-      const segsFlat = flattenSegments(r);
-      // Dept layer columns if visible
-      if (showDept) {
-        DEPT_SEG_LABELS.forEach((lbl, i) => {
-          base[lbl] = (r.deptSegments as (string|null)[]|null)?.[i] ?? "";
-        });
-      }
-      // Person layer columns if visible
-      if (showPers) {
-        PERS_SEG_LABELS.forEach((lbl, i) => {
-          base[lbl] = (r.personSegments as (string|null)[]|null)?.[i] ?? "";
-        });
-      }
-      return { ...base, ...segsFlat };
-    });
+    const flat = filtered.map((r: any) => ({
+      "Element":        elem,
+      "Legal Employer": r.legalEmployer,
+      "People Group 1": r.peopleGroup1,
+      "People Group 2": r.peopleGroup2,
+      "People Group 3": r.peopleGroup3 ?? "",
+      "Eligible":       r.eligible ? "Yes" : "No",
+      "Cost Type":      r.type,
+      "FF Rule":        r.ffRule ?? "",
+      "FF Rank":        r.ffRank ?? "",
+      "Person Match":   r.personMatch ?? "",
+      "Dept Match":     r.deptMatch ?? "",
+      ...flattenSegments(r),
+    }));
     exportCsv(`combinations_${elem}_${new Date().toISOString().slice(0,10)}.csv`, flat);
   };
 
@@ -182,20 +155,18 @@ export function CombinationsPage() {
           </select>
         </div>
 
-        {/* Layer visibility checkboxes */}
+        {/* Layer + filter options */}
         <div className="flex flex-col gap-2 justify-end pb-0.5">
           <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
             <input type="checkbox" checked={eligOnly} onChange={e => setEO(e.target.checked)} className="rounded" />
             Eligible only
           </label>
-          <label className="flex items-center gap-2 text-sm text-purple-700 cursor-pointer">
-            <input type="checkbox" checked={showDept} onChange={e => setShowDept(e.target.checked)}
-              className="rounded accent-purple-600" />
+          <label className="flex items-center gap-2 text-sm text-purple-700 cursor-pointer" title="Include dept costing placeholders at rank 7 (seg 5 excluded)">
+            <input type="checkbox" checked={showDept} onChange={e => setShowDept(e.target.checked)} className="rounded accent-purple-600" />
             Department costing
           </label>
-          <label className="flex items-center gap-2 text-sm text-blue-700 cursor-pointer">
-            <input type="checkbox" checked={showPers} onChange={e => setShowPers(e.target.checked)}
-              className="rounded accent-blue-600" />
+          <label className="flex items-center gap-2 text-sm text-blue-700 cursor-pointer" title="Include person costing placeholders at rank 4 (seg 5 excluded)">
+            <input type="checkbox" checked={showPers} onChange={e => setShowPers(e.target.checked)} className="rounded accent-blue-600" />
             Person costing
           </label>
         </div>
@@ -213,7 +184,7 @@ export function CombinationsPage() {
           <span className="text-xs text-gray-500">
             {isFetching ? "Resolving..." : `${filtered.length} rows - ${nElig} of ${nCombo} combinations eligible`}
             {(showDept || showPers) && !isFetching && (
-              <span className="ml-2 italic text-gray-400">· italic values are placeholders where no real data exists</span>
+              <span className="ml-2 italic text-gray-400">· italic values are placeholders (Seg 5 excluded)</span>
             )}
           </span>
           <div className="flex gap-3 flex-wrap">
@@ -235,7 +206,6 @@ export function CombinationsPage() {
           <table className="min-w-full text-xs">
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr>
-                {/* Fixed columns */}
                 <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Legal employer</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">PG 1</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">PG 2</th>
@@ -244,113 +214,36 @@ export function CombinationsPage() {
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Type</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">FF rule</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Person / Dept</th>
-
-                {/* Department costing layer columns */}
-                {showDept && (
-                  <>
-                    <th className="px-2 py-1 border-l-2 border-purple-200 bg-purple-50 text-center text-[10px] font-semibold text-purple-600 uppercase tracking-wide whitespace-nowrap" colSpan={9}>
-                      Department costing layer
-                    </th>
-                  </>
-                )}
-
-                {/* Person costing layer columns */}
-                {showPers && (
-                  <>
-                    <th className="px-2 py-1 border-l-2 border-blue-200 bg-blue-50 text-center text-[10px] font-semibold text-blue-600 uppercase tracking-wide whitespace-nowrap" colSpan={9}>
-                      Person costing layer
-                    </th>
-                  </>
-                )}
-
-                {/* Final resolved segments */}
                 <SegmentHeaders segs={SEGS} firstBorder />
               </tr>
-
-              {/* Second header row — segment names for expanded layers */}
-              {(showDept || showPers) && (
-                <tr>
-                  {/* Spacer for fixed columns */}
-                  <th colSpan={8} className="bg-gray-50" />
-
-                  {showDept && DEPT_SEG_LABELS.map((s, i) => (
-                    <th key={s} className={`px-2 py-1 text-center text-[9px] font-medium text-purple-500 bg-purple-50 whitespace-nowrap ${i === 0 ? "border-l-2 border-purple-200" : ""}`}>
-                      {s}
-                    </th>
-                  ))}
-
-                  {showPers && PERS_SEG_LABELS.map((s, i) => (
-                    <th key={s} className={`px-2 py-1 text-center text-[9px] font-medium text-blue-500 bg-blue-50 whitespace-nowrap ${i === 0 ? "border-l-2 border-blue-200" : ""}`}>
-                      {s}
-                    </th>
-                  ))}
-
-                  {SEGS.map((s, i) => (
-                    <th key={s} className={`px-2 py-1 text-center text-[9px] font-medium text-gray-400 bg-gray-50 whitespace-nowrap ${i === 0 ? "border-l-2 border-gray-200" : ""}`}>
-                      {s}
-                    </th>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map((r: any, idx: number) => (
+                <tr key={idx} className="hover:bg-gray-50">
+                  <td className="px-3 py-2 text-gray-700 whitespace-nowrap max-w-[160px] truncate">{r.legalEmployer}</td>
+                  <td className="px-2 py-2 text-gray-600 whitespace-nowrap max-w-[140px] truncate">{r.peopleGroup1}</td>
+                  <td className="px-2 py-2 text-gray-600 whitespace-nowrap">{r.peopleGroup2}</td>
+                  <td className="px-2 py-2 text-gray-400">{r.peopleGroup3 ?? "-"}</td>
+                  <td className="px-2 py-2 text-center">
+                    {r.eligible
+                      ? <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">yes</span>
+                      : <span className="text-[10px] font-medium text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">no</span>}
+                  </td>
+                  <td className="px-2 py-2 text-gray-600">{r.type}</td>
+                  <td className="px-2 py-2 font-mono text-[11px] text-amber-700">
+                    {r.ffRule ? `${r.ffRule} r${r.ffRank}` : <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-2 py-2 text-[11px] text-gray-500">
+                    {r.personMatch || r.deptMatch
+                      ? <div><div className="font-mono">{r.personMatch ?? "-"}</div><div className="text-gray-400">{r.deptMatch ?? "-"}</div></div>
+                      : <span className="text-gray-300">-</span>}
+                  </td>
+                  {(r.segments as {v:string|null;s:string}[]).map((f, i) => (
+                    <SegmentCell key={i} v={f.v} s={f.s} isFirst={i === 0}
+                      placeholder={isPlaceholder(f.v)} />
                   ))}
                 </tr>
-              )}
-            </thead>
-
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((r: any, idx: number) => {
-                const deptSegs: (string|null)[] = r.deptSegments ?? Array(9).fill(null);
-                const persSegs: (string|null)[] = r.personSegments ?? Array(9).fill(null);
-
-                return (
-                  <tr key={idx} className="hover:bg-gray-50">
-                    {/* Fixed columns */}
-                    <td className="px-3 py-2 text-gray-700 whitespace-nowrap max-w-[160px] truncate">{r.legalEmployer}</td>
-                    <td className="px-2 py-2 text-gray-600 whitespace-nowrap max-w-[140px] truncate">{r.peopleGroup1}</td>
-                    <td className="px-2 py-2 text-gray-600 whitespace-nowrap">{r.peopleGroup2}</td>
-                    <td className="px-2 py-2 text-gray-400">{r.peopleGroup3 ?? "-"}</td>
-                    <td className="px-2 py-2 text-center">
-                      {r.eligible
-                        ? <span className="text-[10px] font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">yes</span>
-                        : <span className="text-[10px] font-medium text-red-600 bg-red-50 border border-red-200 rounded-full px-2 py-0.5">no</span>}
-                    </td>
-                    <td className="px-2 py-2 text-gray-600">{r.type}</td>
-                    <td className="px-2 py-2 font-mono text-[11px] text-amber-700">
-                      {r.ffRule ? `${r.ffRule} r${r.ffRank}` : <span className="text-gray-300">-</span>}
-                    </td>
-                    <td className="px-2 py-2 text-[11px] text-gray-500">
-                      {r.personMatch || r.deptMatch
-                        ? <div><div className="font-mono">{r.personMatch ?? "-"}</div><div className="text-gray-400">{r.deptMatch ?? "-"}</div></div>
-                        : <span className="text-gray-300">-</span>}
-                    </td>
-
-                    {/* Department costing layer */}
-                    {showDept && deptSegs.map((v, i) => (
-                      <td key={i} className={`px-2 py-2 text-center font-mono text-[11px] ${i === 0 ? "border-l-2 border-purple-200" : ""} ${
-                        !v ? "text-gray-200" :
-                        isPlaceholder(v) ? "bg-purple-50 text-purple-300 italic" :
-                        "bg-purple-50 text-purple-700"
-                      }`}>
-                        {v ?? "·"}
-                      </td>
-                    ))}
-
-                    {/* Person costing layer */}
-                    {showPers && persSegs.map((v, i) => (
-                      <td key={i} className={`px-2 py-2 text-center font-mono text-[11px] ${i === 0 ? "border-l-2 border-blue-200" : ""} ${
-                        !v ? "text-gray-200" :
-                        isPlaceholder(v) ? "bg-blue-50 text-blue-300 italic" :
-                        "bg-blue-50 text-blue-700"
-                      }`}>
-                        {v ?? "·"}
-                      </td>
-                    ))}
-
-                    {/* Final resolved segments — placeholder values shown italic */}
-                    {(r.segments as {v:string|null;s:string}[]).map((f, i) => (
-                      <SegmentCell key={i} v={f.v} s={f.s} isFirst={i === 0}
-                        placeholder={isPlaceholder(f.v)} />
-                    ))}
-                  </tr>
-                );
-              })}
+              ))}
             </tbody>
           </table>
         </div>
