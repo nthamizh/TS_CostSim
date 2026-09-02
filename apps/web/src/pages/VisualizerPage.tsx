@@ -228,7 +228,7 @@ function LadderTable({ title, sub, levels, final, finalLabel, segs, entrySegs, o
               <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Rank</th>
               <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Source</th>
               <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide">Identifier</th>
-              <SegmentHeaders segs={SEGS} firstBorder />
+              <SegmentHeaders segs={segs} firstBorder />
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-50">
@@ -245,7 +245,7 @@ function LadderTable({ title, sub, levels, final, finalLabel, segs, entrySegs, o
                       <td key={i} className={`px-1 py-1 text-center ${i === 0 ? "border-l-2 border-gray-300" : ""}`}>
                         <input value={v ?? ""} onChange={e => onEntryChange?.(i, e.target.value)}
                           className="w-14 text-center font-mono text-xs border border-dashed border-gray-300 rounded px-1 py-0.5 bg-gray-50 focus:outline-none"
-                          aria-label={SEGS[i]} />
+                          aria-label={segs[i]} />
                       </td>
                     ))
                   : (L.segments ?? Array(9).fill(null)).map((v: string|null, i: number) => {
