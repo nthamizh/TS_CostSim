@@ -185,14 +185,14 @@ export function VisualizerPage() {
 
           <LadderTable title="Cost account" sub="rank 1 wins per segment"
             levels={result.cost.levels.filter(L => activeRanks.has(L.rank))} final={result.cost.segments}
-            finalLabel="Final cost account"
+            finalLabel="Final cost account" segs={SEGS}
             entrySegs={entrySegs}
             onEntryChange={(i, v) => setEntrySegs(p => { const n = [...p]; n[i] = v||null; return n; })} />
 
           {result.offset && (
             <LadderTable title="Offset account" sub="eligibility offset, then final cost"
               levels={result.offset.levels.filter(L => activeRanks.has(L.rank))} final={result.offset.segments}
-              finalLabel="Final offset account" />
+              finalLabel="Final offset account" segs={SEGS} />
           )}
 
           <details className="bg-white border border-gray-200 rounded-xl">
@@ -209,9 +209,10 @@ export function VisualizerPage() {
   );
 }
 
-function LadderTable({ title, sub, levels, final, finalLabel, entrySegs, onEntryChange }: {
+function LadderTable({ title, sub, levels, final, finalLabel, segs, entrySegs, onEntryChange }: {
   title: string; sub: string; levels: HierarchyLevel[]; final: (string|null)[];
-  finalLabel: string; entrySegs?: (string|null)[];
+  finalLabel: string; segs: string[];
+  entrySegs?: (string|null)[];
   onEntryChange?: (i: number, v: string) => void;
 }) {
   return (

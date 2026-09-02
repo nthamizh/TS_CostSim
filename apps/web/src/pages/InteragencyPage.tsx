@@ -15,10 +15,10 @@ const LEGEND = [
 
 export function InteragencyPage() {
   const { data: dd, isLoading: ddLoading } = useDropdowns();
-  // Segment names switch dynamically when an interagency LE is selected
-  const SEGS = useSegmentNames(ia || undefined);
   const [elem, setElem]         = useState("");
   const [ia, setIa]             = useState("");
+  // Segment names switch dynamically when an interagency LE is selected
+  const SEGS = useSegmentNames(ia || undefined);
   const [atype, setAtype]       = useState("SCA agency");
   const [agency, setAgency]     = useState("");
   const [cc, setCc]             = useState("");
