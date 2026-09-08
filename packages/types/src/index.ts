@@ -70,9 +70,17 @@ export interface HierarchyLevel {
   cls?: string;
 }
 
+export interface CostLine {
+  percentage:  number;
+  sourceLabel: string;
+  segments:    SegmentValues;
+  isDefault:   boolean;
+}
+
 export interface JournalLine {
   type: "Cost" | "Offset";
-  segments: SegmentValues;
+  lines: CostLine[];
+  segments: SegmentValues;    // first line's segments — backwards compat
   levels: HierarchyLevel[];
 }
 

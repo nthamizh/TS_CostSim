@@ -138,7 +138,7 @@ export function InteragencyPage() {
           </label>
         </div>
         <div className="flex flex-col gap-1">
-          <label className={lbl}>Effective date</label>
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Effective date</label>
           <input type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)}
             className={selC} />
         </div>
