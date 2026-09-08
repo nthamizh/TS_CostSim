@@ -42,7 +42,7 @@ const LABEL_MAP: Record<string, string> = {
   jobCode:"Job code", jobName:"Job name",
   payrollDefinition:"Payroll definition",
   key:"Key", priorityRank:"Rank",
-  personType:"Person type", contractClause:"Contract clause",
+  contractClause:"Contract clause",
   startDate:"Start date", endDate:"End date",
   peopleGroupSegment:"People group segment", isActive:"Active",
   segment:"Segment", oldValue:"Old value", newValue:"New value",
