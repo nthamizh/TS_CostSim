@@ -21,7 +21,8 @@ const DEFAULT_SEGMENT_NAMES = [
   "Segment 1","Segment 2","Segment 3","Segment 4","Segment 5",
   "Segment 6","Segment 7","Segment 8","Segment 9",
 ];
-const DEFAULT_ACTIVE_RANKS  = [1,2,3,4,5,6,7,8,9];
+const DEFAULT_ACTIVE_RANKS   = [1,2,3,4,5,6,7,8,9];
+const DEFAULT_RANK_SEG_MASKS: { rank: number; excludedSegs: number[] }[] = [];
 
 function parseConfig(row: typeof enterpriseConfig.$inferSelect | undefined) {
   if (!row) {
@@ -29,12 +30,14 @@ function parseConfig(row: typeof enterpriseConfig.$inferSelect | undefined) {
       segmentNames:   DEFAULT_SEGMENT_NAMES,
       leSegmentNames: {} as Record<string, string[]>,
       activeRanks:    DEFAULT_ACTIVE_RANKS,
+      rankSegMasks:   DEFAULT_RANK_SEG_MASKS,
     };
   }
   return {
     segmentNames:   JSON.parse(row.segmentNames)   as string[],
     leSegmentNames: JSON.parse(row.leSegmentNames) as Record<string, string[]>,
     activeRanks:    JSON.parse(row.activeRanks)    as number[],
+    rankSegMasks:   JSON.parse(row.rankSegMasks ?? "[]") as { rank: number; excludedSegs: number[] }[],
   };
 }
 
@@ -47,6 +50,10 @@ const configBodySchema = z.object({
     z.array(z.string().min(1).max(60)).length(9) // 9 segment names for that LE
   ),
   activeRanks: z.array(z.number().int().min(1).max(9)).min(1).max(9),
+  rankSegMasks: z.array(z.object({
+    rank:         z.number().int().min(1).max(9),
+    excludedSegs: z.array(z.number().int().min(0).max(8)),
+  })).default([]),
 });
 
 // ── GET /v1/costing/config ────────────────────────────────────────────────────
@@ -106,7 +113,7 @@ configRouter.put("/config", asyncHandler(async (req, res) => {
     return;
   }
 
-  const { segmentNames, leSegmentNames, activeRanks } = parsed.data;
+  const { segmentNames, leSegmentNames, activeRanks, rankSegMasks } = parsed.data;
 
   await db.insert(enterpriseConfig)
     .values({
@@ -114,6 +121,7 @@ configRouter.put("/config", asyncHandler(async (req, res) => {
       segmentNames:   JSON.stringify(segmentNames),
       leSegmentNames: JSON.stringify(leSegmentNames),
       activeRanks:    JSON.stringify(activeRanks),
+      rankSegMasks:   JSON.stringify(rankSegMasks),
       updatedAt:      new Date(),
       updatedBy:      token.sub ?? undefined,
     })
@@ -123,10 +131,11 @@ configRouter.put("/config", asyncHandler(async (req, res) => {
         segmentNames:   JSON.stringify(segmentNames),
         leSegmentNames: JSON.stringify(leSegmentNames),
         activeRanks:    JSON.stringify(activeRanks),
+        rankSegMasks:   JSON.stringify(rankSegMasks),
         updatedAt:      new Date(),
         updatedBy:      token.sub ?? undefined,
       },
     });
 
-  res.json({ success: true, data: { segmentNames, leSegmentNames, activeRanks } });
+  res.json({ success: true, data: { segmentNames, leSegmentNames, activeRanks, rankSegMasks } });
 }));

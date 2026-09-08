@@ -18,6 +18,7 @@ export function EligibilityPage() {
   const [pg2Filter, setPG2]    = useState("");
   const [pg3Filter, setPG3]    = useState("");
   const [filter,    setFilter] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().slice(0,10));
 
   const lov    = dd?.lov ?? {};
   const pg1Key = Object.keys(lov).find(k => k.toLowerCase().includes("people group 1")) ?? "People Group 1";
@@ -26,8 +27,8 @@ export function EligibilityPage() {
 
   // Fetch both account types in one call (acctType=both is the default)
   const { data: rows, isFetching, error } = useQuery({
-    queryKey: ["eligibility", elem],
-    queryFn:  () => api.getEligibility({ elem }) as Promise<any[]>,
+    queryKey: ["eligibility", elem, effectiveDate],
+    queryFn:  () => api.getEligibility({ elem, date: effectiveDate }) as Promise<any[]>,
     enabled:  !!elem,
   });
 
@@ -120,6 +121,11 @@ export function EligibilityPage() {
             <option value="">All</option>
             {(lov[pg3Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
           </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Effective date</label>
+          <input type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)}
+            className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Search</label>

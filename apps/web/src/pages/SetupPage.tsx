@@ -1,47 +1,69 @@
 import { useState, useEffect } from "react";
-import { useConfig, useSaveConfig, RANK_LABELS, DEFAULT_SEGMENT_NAMES, DEFAULT_ACTIVE_RANKS } from "../hooks/useConfig";
-import { useDropdowns } from "../hooks/useDataAll";
+import {
+  useConfig, useSaveConfig, RANK_LABELS,
+  DEFAULT_SEGMENT_NAMES, DEFAULT_ACTIVE_RANKS,
+  type RankMask,
+} from "../hooks/useConfig";
+import { useDropdowns }  from "../hooks/useDataAll";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 
 const SEG_INDEX = [0,1,2,3,4,5,6,7,8];
 const RANKS     = [1,2,3,4,5,6,7,8,9];
 
+// Ranks that support per-segment exclusion (entry costing and eligibility are fixed)
+const MASKABLE_RANKS = new Set([1,3,4,5,6,7,8,9]);
+
 export function SetupPage() {
   const { data: config, isLoading, error } = useConfig();
-  const { data: dd } = useDropdowns();
-  const saveConfig = useSaveConfig();
+  const { data: dd }  = useDropdowns();
+  const saveConfig    = useSaveConfig();
 
-  // Segment names state
-  const [segNames, setSegNames]  = useState<string[]>(DEFAULT_SEGMENT_NAMES);
-  // Active ranks state
-  const [activeRanks, setActive] = useState<Set<number>>(new Set(DEFAULT_ACTIVE_RANKS));
-  // Per-LE segment names
-  const [leSegs, setLeSegs]      = useState<Record<string, string[]>>({});
-  // Which LE is being edited in the interagency section
-  const [editingLE, setEditingLE] = useState<string>("");
-
-  const [saved, setSaved]  = useState(false);
-  const [saveErr, setSaveErr] = useState("");
+  const [segNames,    setSegNames]   = useState<string[]>(DEFAULT_SEGMENT_NAMES);
+  const [activeRanks, setActive]     = useState<Set<number>>(new Set(DEFAULT_ACTIVE_RANKS));
+  // rankMasks: Map<rank, Set<excludedSegIdx>>
+  const [rankMasks,   setRankMasks]  = useState<Map<number, Set<number>>>(new Map());
+  const [leSegs,      setLeSegs]     = useState<Record<string, string[]>>({});
+  const [editingLE,   setEditingLE]  = useState<string>("");
+  const [expandedRank, setExpanded]  = useState<number|null>(null);
+  const [saved,       setSaved]      = useState(false);
+  const [saveErr,     setSaveErr]    = useState("");
 
   const legalEmployers: string[] = (dd?.lov?.["Legal Employer"] ?? []);
 
-  // Initialise form from loaded config
   useEffect(() => {
     if (!config) return;
     setSegNames(config.segmentNames.length === 9 ? config.segmentNames : DEFAULT_SEGMENT_NAMES);
     setActive(new Set(config.activeRanks));
     setLeSegs(config.leSegmentNames ?? {});
+    const maskMap = new Map<number, Set<number>>();
+    for (const m of (config.rankSegMasks ?? [])) {
+      maskMap.set(m.rank, new Set(m.excludedSegs));
+    }
+    setRankMasks(maskMap);
   }, [config]);
 
   const toggleRank = (rank: number) => {
     setActive(prev => {
       const next = new Set(prev);
       if (next.has(rank)) {
-        if (next.size === 1) return prev; // must have at least one active rank
+        if (next.size === 1) return prev;
         next.delete(rank);
+        if (expandedRank === rank) setExpanded(null);
       } else {
         next.add(rank);
       }
+      return next;
+    });
+  };
+
+  const toggleSegExclusion = (rank: number, segIdx: number) => {
+    setRankMasks(prev => {
+      const next   = new Map(prev);
+      const excl   = new Set(next.get(rank) ?? []);
+      if (excl.has(segIdx)) excl.delete(segIdx);
+      else                  excl.add(segIdx);
+      if (excl.size === 0) next.delete(rank);
+      else                 next.set(rank, excl);
       return next;
     });
   };
@@ -59,10 +81,17 @@ export function SetupPage() {
   const handleSave = async () => {
     setSaved(false); setSaveErr("");
     try {
+      const rankSegMasksArr: RankMask[] = [];
+      for (const [rank, excl] of rankMasks) {
+        if (excl.size > 0) {
+          rankSegMasksArr.push({ rank, excludedSegs: [...excl].sort((a,b) => a-b) });
+        }
+      }
       await saveConfig.mutateAsync({
         segmentNames:   segNames,
         leSegmentNames: leSegs,
         activeRanks:    [...activeRanks].sort((a,b) => a-b),
+        rankSegMasks:   rankSegMasksArr,
       });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
@@ -71,7 +100,7 @@ export function SetupPage() {
     }
   };
 
-  const card   = "bg-white border border-gray-200 rounded-xl p-5";
+  const card  = "bg-white border border-gray-200 rounded-xl p-5";
   const sTitle = "text-sm font-semibold text-gray-900 mb-1";
   const sDesc  = "text-xs text-gray-500 mb-4";
   const inp    = "w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400";
@@ -89,12 +118,12 @@ export function SetupPage() {
         </p>
       </div>
 
-      {/* ── Section 1: Segment names ───────────────────────────────────────── */}
+      {/* ── Section 1: Segment names ──────────────────────────────────────── */}
       <div className={card}>
         <h2 className={sTitle}>Segment names</h2>
         <p className={sDesc}>
           Name each of the 9 GL account segments as your enterprise uses them.
-          These labels appear as column headers in all pages.
+          These labels appear as column headers across all pages.
         </p>
         <div className="grid grid-cols-3 gap-3">
           {SEG_INDEX.map(i => (
@@ -117,42 +146,99 @@ export function SetupPage() {
         </div>
       </div>
 
-      {/* ── Section 2: Hierarchy ranks ─────────────────────────────────────── */}
+      {/* ── Section 2: Hierarchy ranks + segment masks ────────────────────── */}
       <div className={card}>
         <h2 className={sTitle}>Costing hierarchy ranks</h2>
         <p className={sDesc}>
-          Select only the ranks your enterprise uses. Disabled ranks are hidden
-          in the Simulator ladder and skipped in all engine computations.
-          At least one rank must remain active.
+          Check the ranks your enterprise uses. Expand any active rank to exclude
+          specific segments from its contribution — excluded segments fall through
+          to the next rank instead of being blocked. At least one rank must stay active.
         </p>
         <div className="space-y-2">
           {RANKS.map(rank => {
-            const isActive = activeRanks.has(rank);
-            const label    = RANK_LABELS[rank];
+            const isActive   = activeRanks.has(rank);
+            const excl       = rankMasks.get(rank) ?? new Set<number>();
+            const hasExcl    = excl.size > 0;
+            const isExpanded = expandedRank === rank;
+            const label      = RANK_LABELS[rank]!;
+            const canMask    = MASKABLE_RANKS.has(rank);
+
             return (
-              <label key={rank}
-                className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+              <div key={rank}
+                className={`rounded-lg border transition-colors ${
                   isActive
                     ? "border-indigo-200 bg-indigo-50"
-                    : "border-gray-200 hover:bg-gray-50"
+                    : "border-gray-200 bg-white"
                 }`}
               >
-                <input
-                  type="checkbox"
-                  checked={isActive}
-                  onChange={() => toggleRank(rank)}
-                  className="mt-0.5 rounded accent-indigo-600"
-                />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[11px] font-mono text-gray-400 w-4">{rank}</span>
-                    <span className={`text-sm font-medium ${isActive ? "text-gray-900" : "text-gray-400"}`}>
-                      {label?.name}
-                    </span>
+                {/* Rank header row */}
+                <div className="flex items-start gap-3 p-3">
+                  <input
+                    type="checkbox"
+                    checked={isActive}
+                    onChange={() => toggleRank(rank)}
+                    className="mt-0.5 rounded accent-indigo-600 flex-shrink-0"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] font-mono text-gray-400 w-4 flex-shrink-0">{rank}</span>
+                      <span className={`text-sm font-medium ${isActive ? "text-gray-900" : "text-gray-400"}`}>
+                        {label.name}
+                      </span>
+                      {hasExcl && isActive && (
+                        <span className="text-[10px] font-medium text-amber-700 bg-amber-100 border border-amber-200 rounded px-1.5 py-0.5">
+                          {excl.size} seg{excl.size > 1 ? "s" : ""} excluded
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-400 mt-0.5 ml-6">{label.sub}</p>
                   </div>
-                  <p className="text-xs text-gray-400 mt-0.5 ml-6">{label?.sub}</p>
+
+                  {/* Expand / collapse for segment mask — only when active and maskable */}
+                  {isActive && canMask && (
+                    <button
+                      onClick={() => setExpanded(isExpanded ? null : rank)}
+                      className="flex-shrink-0 text-xs text-indigo-600 hover:text-indigo-800 px-2 py-1 rounded hover:bg-indigo-100 transition-colors"
+                    >
+                      {isExpanded ? "▲ Hide" : "▼ Segments"}
+                    </button>
+                  )}
                 </div>
-              </label>
+
+                {/* Segment exclusion checkboxes */}
+                {isExpanded && isActive && canMask && (
+                  <div className="px-4 pb-3 pt-1 border-t border-indigo-100">
+                    <p className="text-xs text-gray-500 mb-2">
+                      Checked = this rank <strong>contributes</strong> that segment.
+                      Uncheck to exclude — excluded segments fall through to the next rank.
+                    </p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {SEG_INDEX.map(i => {
+                        const isIncluded = !excl.has(i);
+                        return (
+                          <label key={i}
+                            className={`flex items-center gap-2 text-xs px-2.5 py-1.5 rounded-lg border cursor-pointer transition-colors ${
+                              isIncluded
+                                ? "border-indigo-200 bg-white text-gray-700"
+                                : "border-dashed border-gray-300 bg-gray-50 text-gray-400"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isIncluded}
+                              onChange={() => toggleSegExclusion(rank, i)}
+                              className="rounded accent-indigo-600"
+                            />
+                            <span className={isIncluded ? "font-medium" : "line-through"}>
+                              {segNames[i] ?? `Seg ${i + 1}`}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             );
           })}
         </div>
@@ -162,18 +248,15 @@ export function SetupPage() {
       <div className={card}>
         <h2 className={sTitle}>Interagency segment names (per legal employer)</h2>
         <p className={sDesc}>
-          The Interagency page can show different segment names per legal employer
-          to match each agency's chart of accounts. Select an LE to configure its labels.
-          Leave blank to inherit the enterprise-wide names above.
+          The Interagency page can show different segment names per legal employer.
+          Select an LE to configure its labels. Leave blank to inherit enterprise-wide names.
         </p>
-
         <div className="flex gap-2 mb-4">
           <select
             value={editingLE}
             onChange={e => {
               const le = e.target.value;
               setEditingLE(le);
-              // Pre-fill with enterprise names if not yet configured for this LE
               if (le && !leSegs[le]) {
                 setLeSegs(prev => ({ ...prev, [le]: [...segNames] }));
               }
@@ -182,9 +265,7 @@ export function SetupPage() {
           >
             <option value="">Select legal employer to configure…</option>
             {legalEmployers.map(le => (
-              <option key={le} value={le}>{le}
-                {leSegs[le] ? " ✓" : ""}
-              </option>
+              <option key={le} value={le}>{le}{leSegs[le] ? " ✓" : ""}</option>
             ))}
           </select>
           {editingLE && leSegs[editingLE] && (
@@ -242,7 +323,7 @@ export function SetupPage() {
         )}
       </div>
 
-      {/* ── Save ──────────────────────────────────────────────────────────── */}
+      {/* ── Save ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3">
         <button
           onClick={handleSave}
@@ -251,7 +332,7 @@ export function SetupPage() {
         >
           {saveConfig.isPending ? "Saving…" : "Save configuration"}
         </button>
-        {saved && <span className="text-sm text-emerald-600 font-medium">Saved successfully</span>}
+        {saved   && <span className="text-sm text-emerald-600 font-medium">Saved successfully</span>}
         {saveErr && <span className="text-sm text-red-600">{saveErr}</span>}
       </div>
     </div>

@@ -168,15 +168,28 @@ export function VisualizerPage() {
           <div className="grid grid-cols-2 gap-4">
             {[result.cost, result.offset].map(line => line && (
               <div key={line.type} className="bg-white border border-gray-200 rounded-xl p-4">
-                <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-3">
                   {line.type} line - {line.type === "Cost" ? "Dr" : "Cr"}
+                  {(line.lines?.length ?? 1) > 1 && (
+                    <span className="ml-2 text-indigo-500">{line.lines.length} split lines</span>
+                  )}
                 </div>
-                <div className="font-mono text-sm font-semibold flex flex-wrap gap-0.5">
-                  {line.segments.map((v, i) => (
-                    <span key={i} className="flex items-center">
-                      {i > 0 && <span className="text-gray-300 mx-0.5">-</span>}
-                      <span className={v ? "text-gray-900" : "text-gray-300"}>{v ?? "·"}</span>
-                    </span>
+                <div className="space-y-2">
+                  {(line.lines ?? [{ percentage:100, sourceLabel:"100%", segments: line.segments, isDefault:false }]).map((cl, ci) => (
+                    <div key={ci} className={`rounded-lg p-2 ${cl.isDefault ? "bg-amber-50 border border-amber-200" : "bg-gray-50"}`}>
+                      <div className="text-[10px] text-gray-500 mb-1">
+                        {cl.sourceLabel}
+                        {cl.isDefault && <span className="ml-1 text-amber-600 font-medium">Default COA</span>}
+                      </div>
+                      <div className="font-mono text-sm font-semibold flex flex-wrap gap-0.5">
+                        {cl.segments.map((v: string|null, i: number) => (
+                          <span key={i} className="flex items-center">
+                            {i > 0 && <span className="text-gray-300 mx-0.5">-</span>}
+                            <span className={v ? "text-gray-900" : "text-gray-300"}>{v ?? "·"}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>

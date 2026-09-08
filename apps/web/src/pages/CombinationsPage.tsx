@@ -36,13 +36,14 @@ export function CombinationsPage() {
   const [showDept,  setShowDept] = useState(false);
   const [showPers,  setShowPers] = useState(false);
   const [filter,    setFilter]  = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().slice(0,10));
 
   const lov    = dd?.lov ?? {};
   const pg1Key = Object.keys(lov).find(k => k.toLowerCase().includes("people group 1")) ?? "People Group 1";
   const pg2Key = Object.keys(lov).find(k => k.toLowerCase().includes("people group 2")) ?? "People Group 2";
 
   const qParams = {
-    elem, agency: agency||"", cc: cc||"",
+    elem, agency: agency||"", cc: cc||"", date: effectiveDate,
     leFilter: leFilter||"", pg1Filter: pg1Filter||"", pg2Filter: pg2Filter||"",
     costType, eligOnly: eligOnly ? "true" : "",
     includeDept: showDept ? "true" : "",
@@ -171,6 +172,11 @@ export function CombinationsPage() {
           </label>
         </div>
 
+        <div className="flex flex-col gap-1">
+          <label className={lbl}>Effective date</label>
+          <input type="date" value={effectiveDate} onChange={e => setEffectiveDate(e.target.value)}
+            className={selC} />
+        </div>
         <div className="flex items-end">
           <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter rows..."
             className={`${selC} w-full`} />

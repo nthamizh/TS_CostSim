@@ -1,4 +1,4 @@
-deptName,effStartDate,effEndDate,percentage,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-33055 - Ethiopia-WFP,1951-01-01,4712-12-31,100,UNDP,ETH,99981,33055,,39902,0,0,0
-48650 - Bolivia-UN Sister Agency,1951-01-01,4712-12-31,100,UNDP,BOL,99981,48650,,39902,0,0,0
-34250 - Kenya-UN Sister Agency,1951-01-01,4712-12-31,100,UNDP,KEN,99981,34250,,39902,0,0,0
+deptName,effStartDate,effEndDate,percentage,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9,dSeg1,dSeg2,dSeg3,dSeg4,dSeg5,dSeg6,dSeg7,dSeg8,dSeg9
+33055 - Ethiopia-WFP,1951-01-01,4712-12-31,100,UNDP,ETH,99981,33055,,39902,0,0,0,,,,,,,,,
+48650 - Bolivia-UN Sister Agency,1951-01-01,4712-12-31,100,UNDP,BOL,99981,48650,,39902,0,0,0,,,,,,,,,
+34250 - Kenya-UN Sister Agency,1951-01-01,4712-12-31,100,UNDP,KEN,99981,34250,,39902,0,0,0,,,,,,,,,

@@ -271,10 +271,20 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
 
       // Full replace in a transaction - delete old rows then insert new ones.
       // If the insert fails, the delete is rolled back so old data is preserved.
+      const now = new Date();
+      const auditFields = {
+        createdBy: tokenPayload.sub ?? "etl",
+        updatedAt: now,
+        updatedBy: tokenPayload.sub ?? "etl",
+      };
       await db.transaction(async (tx) => {
         await tx.delete(table).where(eq(table.enterpriseId, enterpriseId));
         if (rows.length > 0) {
-          const enriched = rows.map(r => ({ ...r, enterpriseId }));
+          const enriched = rows.map(r => ({
+            ...r,
+            enterpriseId,
+            ...auditFields,
+          }));
           for (let i = 0; i < enriched.length; i += 500) {
             await tx.insert(table).values(enriched.slice(i, i + 500));
           }

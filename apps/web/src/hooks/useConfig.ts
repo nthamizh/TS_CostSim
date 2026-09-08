@@ -19,10 +19,16 @@ export const RANK_LABELS: Record<number, { name: string; sub: string }> = {
   9: { name: "Costing for payroll",             sub: "Costing of Payroll" },
 };
 
+export interface RankMask {
+  rank: number;
+  excludedSegs: number[]; // 0-based segment indices that this rank must NOT contribute
+}
+
 export interface EnterpriseConfig {
   segmentNames:   string[];
   leSegmentNames: Record<string, string[]>;
   activeRanks:    number[];
+  rankSegMasks:   RankMask[];
 }
 
 export function useConfig() {
@@ -42,13 +48,6 @@ export function useSaveConfig() {
   });
 }
 
-/**
- * Returns the 9 segment names to use for a given context.
- * - If `ia` (interagency LE) is provided and the config has a per-LE override,
- *   returns that LE's segment names.
- * - Otherwise returns the enterprise-wide segment names.
- * - Falls back to defaults if config is not loaded yet.
- */
 export function useSegmentNames(ia?: string): string[] {
   const { data: config } = useConfig();
   if (!config) return DEFAULT_SEGMENT_NAMES;
@@ -62,4 +61,15 @@ export function useActiveRanks(): Set<number> {
   const { data: config } = useConfig();
   const ranks = config?.activeRanks ?? DEFAULT_ACTIVE_RANKS;
   return new Set(ranks);
+}
+
+/**
+ * Returns a Map<rank, Set<excludedSegIndex>> for use in the Visualizer ladder
+ * and in any client-side display that needs to know which segments a rank skips.
+ * Empty set = rank contributes all segments.
+ */
+export function useRankSegMasks(): Map<number, Set<number>> {
+  const { data: config } = useConfig();
+  const masks = config?.rankSegMasks ?? [];
+  return new Map(masks.map(m => [m.rank, new Set(m.excludedSegs)]));
 }

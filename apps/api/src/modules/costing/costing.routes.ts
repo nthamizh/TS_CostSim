@@ -8,6 +8,7 @@ import {
   computeCombinationsGrid, computeInteragencyGrid,
 } from "./engine.js";
 import * as T from "../../db/schema.js";
+import type { RankMask } from "./engine.js";
 import { eq, or, isNull } from "drizzle-orm";
 
 export const costingRouter: IRouter = Router();
@@ -90,6 +91,15 @@ async function loadLov(enterpriseId: string | null) {
     .orderBy(T.listOfValues.sortOrder);
 }
 
+async function loadRankMasks(enterpriseId: string | null): Promise<RankMask[]> {
+  if (!enterpriseId) return [];
+  const row = await db.query.enterpriseConfig.findFirst({
+    where: eq(T.enterpriseConfig.enterpriseId, enterpriseId),
+  });
+  if (!row?.rankSegMasks) return [];
+  try { return JSON.parse(row.rankSegMasks) as RankMask[]; } catch { return []; }
+}
+
 // ---------------------------------------------------------------------------
 // POST /v1/costing/simulate
 // 9-rank costing resolution for a single assignment/element combination.
@@ -103,8 +113,11 @@ costingRouter.post("/simulate",
       return;
     }
     const eid  = req.serviceToken.enterpriseId;
-    const data = await loadDataSources(eid);
-    const result = runSimulation(parsed.data, data as any);
+    const [data, rankMasks] = await Promise.all([
+      loadDataSources(eid),
+      loadRankMasks(eid),
+    ]);
+    const result = runSimulation(parsed.data, data as any, rankMasks);
     res.json({ success: true, data: result });
   })
 );

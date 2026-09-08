@@ -1,10 +1,5 @@
 // ---------------------------------------------------------------------------
 // CostSimulator DB schema
-//
-// Tenancy: enterpriseId on every data-source table. NULL = common/platform-
-// owned reference data. RLS enforced via set_config('app.current_enterprise_id').
-//
-// No local users table — identity arrives via Platform's signed service token.
 // ---------------------------------------------------------------------------
 import {
   pgTable, pgEnum, text, timestamp, uuid, integer,
@@ -12,16 +7,26 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
+// Shared audit columns added to every data-source table.
+// createdBy / updatedBy store the Platform user ID (string from JWT sub)
+// or the ETL run ID so every row is traceable to its load event.
+const audit = {
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  createdBy: text("created_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true }),
+  updatedBy: text("updated_by"),
+};
+
 // ── Lists of values ───────────────────────────────────────────────────────────
 export const listOfValues = pgTable(
   "costsim_lov",
   {
     id:           uuid("id").primaryKey().defaultRandom(),
     enterpriseId: uuid("enterprise_id"),
-    category:     text("category").notNull(), // "Legal Employer" | "People Group 1" | …
+    category:     text("category").notNull(),
     value:        text("value").notNull(),
     sortOrder:    integer("sort_order").notNull().default(0),
-    createdAt:    timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [index("costsim_lov_ent_cat_idx").on(t.enterpriseId, t.category)],
 );
@@ -36,7 +41,7 @@ export const validCombinations = pgTable(
     peopleGroup1:  text("people_group1").notNull(),
     peopleGroup2:  text("people_group2").notNull(),
     peopleGroup3:  text("people_group3"),
-    createdAt:    timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [
     index("costsim_vc_ent_idx").on(t.enterpriseId),
@@ -46,6 +51,7 @@ export const validCombinations = pgTable(
 
 // ── Element Eligibility Costing ───────────────────────────────────────────────
 export const accountTypeEnum = pgEnum("costsim_account_type", ["Cost Account","Offset Account"]);
+export const costingTypeEnum  = pgEnum("costsim_costing_type", ["Any","Costed","Fixed","Distributed"]);
 
 export const eligibilityCosting = pgTable(
   "costsim_eligibility",
@@ -55,6 +61,9 @@ export const eligibilityCosting = pgTable(
     elementName:          text("element_name").notNull(),
     eligibility:          text("eligibility").notNull(),
     accountType:          accountTypeEnum("account_type").notNull(),
+    // Costing Type controls how Oracle applies the costing rule.
+    // null / "Any" = applies to all costing types (default behaviour).
+    costingType:          costingTypeEnum("costing_type"),
     eligibilityStartDate: text("eligibility_start_date").notNull(),
     eligibilityEndDate:   text("eligibility_end_date").notNull(),
     legalEmployer:        text("legal_employer"),
@@ -64,7 +73,7 @@ export const eligibilityCosting = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [
     index("costsim_elig_ent_elem_idx").on(t.enterpriseId, t.elementName),
@@ -82,10 +91,15 @@ export const departmentCosting = pgTable(
     effStartDate: text("eff_start_date").notNull(),
     effEndDate:   text("eff_end_date").notNull(),
     percentage:   real("percentage").notNull().default(100),
+    // Primary costing account segments
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    // Default COA — when percentage < 100, the remaining balance is posted here
+    dSeg1: text("d_seg1"), dSeg2: text("d_seg2"), dSeg3: text("d_seg3"),
+    dSeg4: text("d_seg4"), dSeg5: text("d_seg5"), dSeg6: text("d_seg6"),
+    dSeg7: text("d_seg7"), dSeg8: text("d_seg8"), dSeg9: text("d_seg9"),
+    ...audit,
   },
   t => [index("costsim_dept_ent_name_idx").on(t.enterpriseId, t.deptName)],
 );
@@ -109,7 +123,7 @@ export const personCosting = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [
     index("costsim_person_ent_asg_idx").on(t.enterpriseId, t.assignmentNumber),
@@ -137,7 +151,7 @@ export const personElementCosting = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [
     index("costsim_pe_ent_asg_elem_idx").on(t.enterpriseId, t.assignmentNumber, t.element),
@@ -159,7 +173,7 @@ export const positionCosting = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [index("costsim_pos_ent_code_idx").on(t.enterpriseId, t.positionCode)],
 );
@@ -178,12 +192,13 @@ export const jobCosting = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [index("costsim_job_ent_code_idx").on(t.enterpriseId, t.jobCode)],
 );
 
 // ── Costing of Payroll ────────────────────────────────────────────────────────
+// percentage removed — payroll costing applies the full account regardless.
 export const payrollCosting = pgTable(
   "costsim_payroll",
   {
@@ -192,11 +207,10 @@ export const payrollCosting = pgTable(
     payrollDefinition:   text("payroll_definition").notNull(),
     effStartDate:        text("eff_start_date").notNull(),
     effEndDate:          text("eff_end_date").notNull(),
-    percentage:          real("percentage").notNull().default(100),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [index("costsim_payroll_ent_def_idx").on(t.enterpriseId, t.payrollDefinition)],
 );
@@ -210,7 +224,7 @@ export const fastFormulaOverride = pgTable(
     key:           text("key").notNull(),
     element:       text("element").notNull(),
     priorityRank:  integer("priority_rank").notNull(),
-    legalEntity:   text("legal_entity"),   // null or ANY = wildcard
+    legalEntity:   text("legal_entity"),
     peopleGroup1:  text("people_group1"),
     peopleGroup2:  text("people_group2"),
     personAgency:  text("person_agency"),
@@ -221,7 +235,7 @@ export const fastFormulaOverride = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [
     index("costsim_ff_ent_elem_idx").on(t.enterpriseId, t.element),
@@ -247,7 +261,7 @@ export const iacPpgOverride = pgTable(
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    createdAt: timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [index("costsim_iac_ppg_ent_le_idx").on(t.enterpriseId, t.legalEntity)],
 );
@@ -260,34 +274,31 @@ export const iacSegOverride = pgTable(
     enterpriseId: uuid("enterprise_id"),
     legalEntity:  text("legal_entity").notNull(),
     accountType:  iacOverrideTypeEnum("account_type").notNull(),
-    segment:      text("segment").notNull(), // "Segment 1" … "Segment 9"
+    segment:      text("segment").notNull(),
     oldValue:     text("old_value"),
     newValue:     text("new_value"),
     startDate:    text("start_date").notNull(),
     endDate:      text("end_date").notNull(),
-    createdAt:    timestamp("created_at",{withTimezone:true}).notNull().defaultNow(),
+    ...audit,
   },
   t => [index("costsim_iac_seg_ent_le_idx").on(t.enterpriseId, t.legalEntity)],
 );
 
-// ── ETL staging ───────────────────────────────────────────────────────────────
-// Records each scheduler-triggered full sync. Data replaces the existing rows
-// for that enterprise+table (DELETE WHERE enterpriseId=? then bulk INSERT)
-// inside a transaction — safe because a failed job leaves old data intact.
+// ── ETL runs ──────────────────────────────────────────────────────────────────
 export const etlJobStatusEnum = pgEnum("costsim_etl_status", ["running","success","failed"]);
 
 export const etlRuns = pgTable(
   "costsim_etl_runs",
   {
     id:           uuid("id").primaryKey().defaultRandom(),
-    platformRunId: text("platform_run_id").notNull(), // Platform job_runs.id
+    platformRunId: text("platform_run_id").notNull(),
     enterpriseId: uuid("enterprise_id").notNull(),
     targetTable:  text("target_table").notNull(),
     status:       etlJobStatusEnum("status").notNull().default("running"),
     rowsLoaded:   integer("rows_loaded"),
     errorMessage: text("error_message"),
-    startedAt:    timestamp("started_at",{withTimezone:true}).notNull().defaultNow(),
-    finishedAt:   timestamp("finished_at",{withTimezone:true}),
+    startedAt:    timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt:   timestamp("finished_at", { withTimezone: true }),
   },
   t => [
     index("costsim_etl_runs_ent_idx").on(t.enterpriseId),
@@ -296,33 +307,22 @@ export const etlRuns = pgTable(
 );
 
 // ── Enterprise configuration ──────────────────────────────────────────────────
-// One row per enterprise. Stores:
-//   segmentNames     - custom labels for seg1..seg9 (enterprise-wide)
-//   leSegmentNames   - per-LE custom labels for interagency page only
-//                      { "LE name": ["s1","s2",...,"s9"] }
-//   activeRanks      - which costing hierarchy ranks are used by this enterprise
-//                      stored as comma-separated rank numbers e.g. "1,2,3,4,7,8"
 export const enterpriseConfig = pgTable(
   "costsim_enterprise_config",
   {
     id:             uuid("id").primaryKey().defaultRandom(),
     enterpriseId:   uuid("enterprise_id").notNull().unique(),
-    // 9 segment names, JSON array: ["Agency","OU","Fund",...] 
     segmentNames:   text("segment_names").notNull().default(
       '["Segment 1","Segment 2","Segment 3","Segment 4","Segment 5","Segment 6","Segment 7","Segment 8","Segment 9"]'
     ),
-    // per-LE segment names for interagency page, JSON object
-    // { "UN Women": ["Agency","OU",...], ... }
     leSegmentNames: text("le_segment_names").notNull().default("{}"),
-    // Active costing hierarchy ranks, JSON array of integers
-    // All 9 active by default: [1,2,3,4,5,6,7,8,9]
-    activeRanks:    text("active_ranks").notNull().default(
-      "[1,2,3,4,5,6,7,8,9]"
-    ),
-    updatedAt:      timestamp("updated_at",{withTimezone:true}).notNull().defaultNow(),
+    activeRanks:    text("active_ranks").notNull().default("[1,2,3,4,5,6,7,8,9]"),
+    // Per-rank segment masks — which segments each rank may contribute.
+    // JSON: [{ rank: 4, excludedSegs: [0] }, { rank: 7, excludedSegs: [4] }]
+    // Absent rank = no exclusions. Rank not in activeRanks = disabled entirely.
+    rankSegMasks:   text("rank_seg_masks").notNull().default("[]"),
+    updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy:      uuid("updated_by"),
   },
-  t => [
-    index("costsim_config_ent_idx").on(t.enterpriseId),
-  ],
+  t => [index("costsim_config_ent_idx").on(t.enterpriseId)],
 );
