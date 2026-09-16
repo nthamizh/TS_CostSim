@@ -54,8 +54,8 @@ export function VisualizerPage() {
     onSuccess: setResult,
   });
 
-  const set = (k: keyof FormState) => (e: React.ChangeEvent<HTMLSelectElement|HTMLInputElement>) =>
-    setForm(f => ({ ...f, [k]: e.target.value }));
+  const set = (k: keyof FormState) => (v: string) =>
+    setForm(f => ({ ...f, [k]: v }));
 
   if (isLoading) return <LoadingPane label="Loading costing data..." />;
   if (ddErr)     return <ErrorPane message={(ddErr as Error).message} />;
@@ -106,7 +106,7 @@ export function VisualizerPage() {
             <SearchableSelect value={form.positionCode} onChange={set("positionCode")} options={dd?.positions ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Effective date</label>
-            <input type="date" value={form.effectiveDate} onChange={set("effectiveDate")} className={sel} /></div>
+            <input type="date" value={form.effectiveDate} onChange={e => set("effectiveDate")(e.target.value)} className={sel} /></div>
         </div>
 
         <div className="mt-4 flex gap-3 items-center">
