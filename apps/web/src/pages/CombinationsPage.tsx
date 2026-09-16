@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SearchableSelect } from "../components/SearchableSelect";
 import { useQuery } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
 import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
@@ -109,51 +110,31 @@ export function CombinationsPage() {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-white border border-gray-200 rounded-xl p-4">
         <div className="flex flex-col gap-1">
           <label className={lbl}>Element</label>
-          <select value={elem} onChange={e => setElem(e.target.value)} className={selC}>
-            <option value="">Select...</option>
-            {(dd?.elements ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>
+          <SearchableSelect value={elem} onChange={v => setElem(v)} options={dd?.elements ?? []} placeholder="Select..." className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={lbl}>Cost type</label>
-          <select value={costType} onChange={e => setCType(e.target.value)} className={selC}>
-            <option>Both</option><option>Cost</option><option>Offset</option>
-          </select>
+          <SearchableSelect value={costType} onChange={v => setCType(v)} options={["Both","Cost","Offset"]} placeholder="Both" className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={lbl}>Legal employer</label>
-          <select value={leFilter} onChange={e => setLE(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov["Legal Employer"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>
+          <SearchableSelect value={leFilter} onChange={v => setLE(v)} options={lov["Legal Employer"] ?? []} placeholder="All" className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={lbl}>People group 1</label>
-          <select value={pg1Filter} onChange={e => setPG1(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov[pg1Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>
+          <SearchableSelect value={pg1Filter} onChange={v => setPG1(v)} options={lov[pg1Key] ?? []} placeholder="All" className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={lbl}>People group 2</label>
-          <select value={pg2Filter} onChange={e => setPG2(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov[pg2Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>
+          <SearchableSelect value={pg2Filter} onChange={v => setPG2(v)} options={lov[pg2Key] ?? []} placeholder="All" className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={lbl}>Agency</label>
-          <select value={agency} onChange={e => setAgency(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov["Agencies"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>
+          <SearchableSelect value={agency} onChange={v => setAgency(v)} options={lov["Agencies"] ?? []} placeholder="All" className={selC} />
         </div>
         <div className="flex flex-col gap-1">
           <label className={lbl}>Contract clause</label>
-          <select value={cc} onChange={e => setCc(e.target.value)} className={selC}>
-            <option value="">None</option>
-            {(lov["Contract Clause"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>
+          <SearchableSelect value={cc} onChange={v => setCc(v)} options={lov["Contract Clause"] ?? []} placeholder="None" className={selC} />
         </div>
 
         {/* Layer + filter options */}

@@ -1,3 +1,3 @@
-legalEntity,peopleGroupSegment,element,accountType,isActive,startDate,endDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-UN Women,C-UN Volunteers-Intl.University-UNDP-,UNA_ER_RES_SEC,Cost,true,1951-01-01,4712-12-31,UNW,,,,7021,,,,
-United Nations Capital Development Fund,C-UN Volunteers-Intl.University-UNDP-,UNA_ER_RES_SEC,Cost,true,1951-01-01,4712-12-31,CDF,,,,7021,,,,
+legalEntity,peopleGroupSegment,element,accountType,isActive,startDate,endDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9,createdAt,createdBy,updatedAt,updatedBy
+UN Women,C-UN Volunteers-Intl.University-UNDP-,UNA_ER_RES_SEC,Cost,true,1951-01-01,4712-12-31,UNW,,,,7021,,,,,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl
+United Nations Capital Development Fund,C-UN Volunteers-Intl.University-UNDP-,UNA_ER_RES_SEC,Cost,true,1951-01-01,4712-12-31,CDF,,,,7021,,,,,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl

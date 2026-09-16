@@ -7,9 +7,6 @@ import {
 } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 
-// Shared audit columns added to every data-source table.
-// createdBy / updatedBy store the Platform user ID (string from JWT sub)
-// or the ETL run ID so every row is traceable to its load event.
 const audit = {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   createdBy: text("created_by"),
@@ -35,8 +32,8 @@ export const listOfValues = pgTable(
 export const validCombinations = pgTable(
   "costsim_valid_combinations",
   {
-    id:           uuid("id").primaryKey().defaultRandom(),
-    enterpriseId: uuid("enterprise_id"),
+    id:            uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:  uuid("enterprise_id"),
     legalEmployer: text("legal_employer").notNull(),
     peopleGroup1:  text("people_group1").notNull(),
     peopleGroup2:  text("people_group2").notNull(),
@@ -61,8 +58,6 @@ export const eligibilityCosting = pgTable(
     elementName:          text("element_name").notNull(),
     eligibility:          text("eligibility").notNull(),
     accountType:          accountTypeEnum("account_type").notNull(),
-    // Costing Type controls how Oracle applies the costing rule.
-    // null / "Any" = applies to all costing types (default behaviour).
     costingType:          costingTypeEnum("costing_type"),
     eligibilityStartDate: text("eligibility_start_date").notNull(),
     eligibilityEndDate:   text("eligibility_end_date").notNull(),
@@ -85,17 +80,20 @@ export const eligibilityCosting = pgTable(
 export const departmentCosting = pgTable(
   "costsim_department",
   {
-    id:           uuid("id").primaryKey().defaultRandom(),
-    enterpriseId: uuid("enterprise_id"),
-    deptName:     text("dept_name").notNull(),
-    effStartDate: text("eff_start_date").notNull(),
-    effEndDate:   text("eff_end_date").notNull(),
-    percentage:   real("percentage").notNull().default(100),
-    // Primary costing account segments
+    id:               uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:     uuid("enterprise_id"),
+    ldg:              text("ldg"),                     // Legislative Data Group
+    deptName:         text("dept_name").notNull(),
+    costingType:      text("costing_type"),            // Costed / Fixed / Distributed
+    subTypeSequence:  text("sub_type_sequence"),       // Sub-type sequence number
+    effStartDate:     text("eff_start_date").notNull(),
+    effEndDate:       text("eff_end_date").notNull(),
+    percentage:       real("percentage").notNull().default(100),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
-    // Default COA — when percentage < 100, the remaining balance is posted here
+    // Default COA — remainder when percentage < 100
+    // NOTE: d_seg columns retained in DB but hidden from UI grid per requirement
     dSeg1: text("d_seg1"), dSeg2: text("d_seg2"), dSeg3: text("d_seg3"),
     dSeg4: text("d_seg4"), dSeg5: text("d_seg5"), dSeg6: text("d_seg6"),
     dSeg7: text("d_seg7"), dSeg8: text("d_seg8"), dSeg9: text("d_seg9"),
@@ -110,6 +108,7 @@ export const personCosting = pgTable(
   {
     id:               uuid("id").primaryKey().defaultRandom(),
     enterpriseId:     uuid("enterprise_id"),
+    ldg:              text("ldg"),
     personNumber:     text("person_number").notNull(),
     assignmentNumber: text("assignment_number").notNull(),
     personType:       text("person_type"),
@@ -117,6 +116,8 @@ export const personCosting = pgTable(
     personAgency:     text("person_agency"),
     legalEntity:      text("legal_entity").notNull(),
     peopleGroup:      text("people_group"),
+    costingType:      text("costing_type"),
+    subTypeSequence:  text("sub_type_sequence"),
     percentage:       real("percentage").notNull().default(100),
     parStartDate:     text("par_start_date").notNull(),
     parEndDate:       text("par_end_date").notNull(),
@@ -137,6 +138,7 @@ export const personElementCosting = pgTable(
   {
     id:               uuid("id").primaryKey().defaultRandom(),
     enterpriseId:     uuid("enterprise_id"),
+    ldg:              text("ldg"),
     personNumber:     text("person_number").notNull(),
     assignmentNumber: text("assignment_number").notNull(),
     element:          text("element").notNull(),
@@ -145,6 +147,8 @@ export const personElementCosting = pgTable(
     personAgency:     text("person_agency"),
     legalEntity:      text("legal_entity").notNull(),
     peopleGroup:      text("people_group"),
+    costingType:      text("costing_type"),
+    subTypeSequence:  text("sub_type_sequence"),
     percentage:       real("percentage").notNull().default(100),
     parStartDate:     text("par_start_date").notNull(),
     parEndDate:       text("par_end_date").notNull(),
@@ -163,13 +167,15 @@ export const personElementCosting = pgTable(
 export const positionCosting = pgTable(
   "costsim_position",
   {
-    id:           uuid("id").primaryKey().defaultRandom(),
-    enterpriseId: uuid("enterprise_id"),
-    positionCode: text("position_code").notNull(),
-    positionName: text("position_name").notNull(),
-    effStartDate: text("eff_start_date").notNull(),
-    effEndDate:   text("eff_end_date").notNull(),
-    percentage:   real("percentage").notNull().default(100),
+    id:              uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:    uuid("enterprise_id"),
+    ldg:             text("ldg"),
+    positionCode:    text("position_code").notNull(),
+    positionName:    text("position_name").notNull(),
+    subTypeSequence: text("sub_type_sequence"),
+    effStartDate:    text("eff_start_date").notNull(),
+    effEndDate:      text("eff_end_date").notNull(),
+    percentage:      real("percentage").notNull().default(100),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
@@ -182,13 +188,15 @@ export const positionCosting = pgTable(
 export const jobCosting = pgTable(
   "costsim_job",
   {
-    id:           uuid("id").primaryKey().defaultRandom(),
-    enterpriseId: uuid("enterprise_id"),
-    jobCode:      text("job_code").notNull(),
-    jobName:      text("job_name").notNull(),
-    effStartDate: text("eff_start_date").notNull(),
-    effEndDate:   text("eff_end_date").notNull(),
-    percentage:   real("percentage").notNull().default(100),
+    id:              uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:    uuid("enterprise_id"),
+    ldg:             text("ldg"),
+    jobCode:         text("job_code").notNull(),
+    jobName:         text("job_name").notNull(),
+    subTypeSequence: text("sub_type_sequence"),
+    effStartDate:    text("eff_start_date").notNull(),
+    effEndDate:      text("eff_end_date").notNull(),
+    percentage:      real("percentage").notNull().default(100),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
@@ -198,15 +206,17 @@ export const jobCosting = pgTable(
 );
 
 // ── Costing of Payroll ────────────────────────────────────────────────────────
-// percentage removed — payroll costing applies the full account regardless.
 export const payrollCosting = pgTable(
   "costsim_payroll",
   {
-    id:                  uuid("id").primaryKey().defaultRandom(),
-    enterpriseId:        uuid("enterprise_id"),
-    payrollDefinition:   text("payroll_definition").notNull(),
-    effStartDate:        text("eff_start_date").notNull(),
-    effEndDate:          text("eff_end_date").notNull(),
+    id:                uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:      uuid("enterprise_id"),
+    ldg:               text("ldg"),
+    payrollDefinition: text("payroll_definition").notNull(),
+    costingType:       text("costing_type"),
+    subTypeSequence:   text("sub_type_sequence"),
+    effStartDate:      text("eff_start_date").notNull(),
+    effEndDate:        text("eff_end_date").notNull(),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
@@ -219,19 +229,19 @@ export const payrollCosting = pgTable(
 export const fastFormulaOverride = pgTable(
   "costsim_fast_formula",
   {
-    id:            uuid("id").primaryKey().defaultRandom(),
-    enterpriseId:  uuid("enterprise_id"),
-    key:           text("key").notNull(),
-    element:       text("element").notNull(),
-    priorityRank:  integer("priority_rank").notNull(),
-    legalEntity:   text("legal_entity"),
-    peopleGroup1:  text("people_group1"),
-    peopleGroup2:  text("people_group2"),
-    personAgency:  text("person_agency"),
-    personType:    text("person_type"),
+    id:             uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:   uuid("enterprise_id"),
+    key:            text("key").notNull(),
+    element:        text("element").notNull(),
+    priorityRank:   integer("priority_rank").notNull(),
+    legalEntity:    text("legal_entity"),
+    peopleGroup1:   text("people_group1"),
+    peopleGroup2:   text("people_group2"),
+    personAgency:   text("person_agency"),
+    personType:     text("person_type"),
     contractClause: text("contract_clause"),
-    startDate:     text("start_date").notNull(),
-    endDate:       text("end_date").notNull(),
+    startDate:      text("start_date").notNull(),
+    endDate:        text("end_date").notNull(),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
@@ -249,15 +259,15 @@ export const iacOverrideTypeEnum = pgEnum("costsim_iac_account_type", ["Cost","O
 export const iacPpgOverride = pgTable(
   "costsim_iac_ppg",
   {
-    id:                   uuid("id").primaryKey().defaultRandom(),
-    enterpriseId:         uuid("enterprise_id"),
-    legalEntity:          text("legal_entity").notNull(),
-    peopleGroupSegment:   text("people_group_segment").notNull(),
-    element:              text("element").notNull(),
-    accountType:          iacOverrideTypeEnum("account_type").notNull(),
-    isActive:             boolean("is_active").notNull().default(true),
-    startDate:            text("start_date").notNull(),
-    endDate:              text("end_date").notNull(),
+    id:                 uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:       uuid("enterprise_id"),
+    legalEntity:        text("legal_entity").notNull(),
+    peopleGroupSegment: text("people_group_segment").notNull(),
+    element:            text("element").notNull(),
+    accountType:        iacOverrideTypeEnum("account_type").notNull(),
+    isActive:           boolean("is_active").notNull().default(true),
+    startDate:          text("start_date").notNull(),
+    endDate:            text("end_date").notNull(),
     seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
     seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
     seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
@@ -290,15 +300,15 @@ export const etlJobStatusEnum = pgEnum("costsim_etl_status", ["running","success
 export const etlRuns = pgTable(
   "costsim_etl_runs",
   {
-    id:           uuid("id").primaryKey().defaultRandom(),
+    id:            uuid("id").primaryKey().defaultRandom(),
     platformRunId: text("platform_run_id").notNull(),
-    enterpriseId: uuid("enterprise_id").notNull(),
-    targetTable:  text("target_table").notNull(),
-    status:       etlJobStatusEnum("status").notNull().default("running"),
-    rowsLoaded:   integer("rows_loaded"),
-    errorMessage: text("error_message"),
-    startedAt:    timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
-    finishedAt:   timestamp("finished_at", { withTimezone: true }),
+    enterpriseId:  uuid("enterprise_id").notNull(),
+    targetTable:   text("target_table").notNull(),
+    status:        etlJobStatusEnum("status").notNull().default("running"),
+    rowsLoaded:    integer("rows_loaded"),
+    errorMessage:  text("error_message"),
+    startedAt:     timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt:    timestamp("finished_at", { withTimezone: true }),
   },
   t => [
     index("costsim_etl_runs_ent_idx").on(t.enterpriseId),
@@ -317,9 +327,6 @@ export const enterpriseConfig = pgTable(
     ),
     leSegmentNames: text("le_segment_names").notNull().default("{}"),
     activeRanks:    text("active_ranks").notNull().default("[1,2,3,4,5,6,7,8,9]"),
-    // Per-rank segment masks — which segments each rank may contribute.
-    // JSON: [{ rank: 4, excludedSegs: [0] }, { rank: 7, excludedSegs: [4] }]
-    // Absent rank = no exclusions. Rank not in activeRanks = disabled entirely.
     rankSegMasks:   text("rank_seg_masks").notNull().default("[]"),
     updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy:      uuid("updated_by"),

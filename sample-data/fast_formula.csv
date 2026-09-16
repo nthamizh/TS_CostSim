@@ -1,3 +1,3 @@
-key,element,priorityRank,legalEntity,peopleGroup1,peopleGroup2,personAgency,personType,contractClause,startDate,endDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-UNA_ER_RES_SEC_ROM_JPO,UNA_ER_RES_SEC,1,ANY,ANY,ANY,UNW,ANY,JPO,01/01/1951,31/12/4712,,,12050,,,,,JPO,
-UNA_ER_RES_SEC_ROM,UNA_ER_RES_SEC,2,ANY,ANY,ANY,UNW,ANY,ANY,01/01/1951,31/12/4712,,,12000,,,,,,
+key,element,priorityRank,legalEntity,peopleGroup1,peopleGroup2,personAgency,personType,contractClause,startDate,endDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9,createdAt,createdBy,updatedAt,updatedBy
+UNA_ER_RES_SEC_ROM_JPO,UNA_ER_RES_SEC,1,ANY,ANY,ANY,UNW,ANY,JPO,1951-01-01,4712-12-31,,,12050,,,,,JPO,,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl
+UNA_ER_RES_SEC_ROM,UNA_ER_RES_SEC,2,ANY,ANY,ANY,UNW,ANY,ANY,1951-01-01,4712-12-31,,,12000,,,,,,,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl

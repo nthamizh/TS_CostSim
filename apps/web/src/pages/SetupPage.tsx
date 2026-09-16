@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SearchableSelect } from "../components/SearchableSelect";
 import {
   useConfig, useSaveConfig, RANK_LABELS,
   DEFAULT_SEGMENT_NAMES, DEFAULT_ACTIVE_RANKS,
@@ -252,22 +253,18 @@ export function SetupPage() {
           Select an LE to configure its labels. Leave blank to inherit enterprise-wide names.
         </p>
         <div className="flex gap-2 mb-4">
-          <select
+          <SearchableSelect
             value={editingLE}
-            onChange={e => {
-              const le = e.target.value;
+            onChange={le => {
               setEditingLE(le);
               if (le && !leSegs[le]) {
                 setLeSegs(prev => ({ ...prev, [le]: [...segNames] }));
               }
             }}
+            options={legalEmployers.map(le => ({ value: le, label: le + (leSegs[le] ? " ✓" : "") }))}
+            placeholder="Select legal employer to configure…"
             className="flex-1 border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-          >
-            <option value="">Select legal employer to configure…</option>
-            {legalEmployers.map(le => (
-              <option key={le} value={le}>{le}{leSegs[le] ? " ✓" : ""}</option>
-            ))}
-          </select>
+          />
           {editingLE && leSegs[editingLE] && (
             <button
               onClick={() => {

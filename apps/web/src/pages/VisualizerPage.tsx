@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { SearchableSelect } from "../components/SearchableSelect";
 import { useMutation } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
 import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
@@ -69,76 +70,40 @@ export function VisualizerPage() {
       <div className="bg-white border border-gray-200 rounded-xl p-5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <div><label className={lbl}>Base element name</label>
-            <select value={form.elementName} onChange={set("elementName")} className={sel}>
-              <option value="">Select element...</option>
-              {(dd?.elements ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.elementName} onChange={set("elementName")} options={dd?.elements ?? []} placeholder="Select element..." className={sel} /></div>
 
           <div><label className={lbl}>Assignment number</label>
-            <select value={form.assignmentNumber} onChange={set("assignmentNumber")} className={sel}>
-              <option value="">None</option>
-              {(dd?.assignments ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.assignmentNumber} onChange={set("assignmentNumber")} options={dd?.assignments ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Legal entity</label>
-            <select value={form.legalEntity} onChange={set("legalEntity")} className={sel}>
-              <option value="">Select...</option>
-              {(lov["Legal Employer"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.legalEntity} onChange={set("legalEntity")} options={lov["Legal Employer"] ?? []} placeholder="Select..." className={sel} /></div>
 
           <div><label className={lbl}>Department</label>
-            <select value={form.department} onChange={set("department")} className={sel}>
-              <option value="">None</option>
-              {(dd?.departments ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.department} onChange={set("department")} options={dd?.departments ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Agency</label>
-            <select value={form.agency} onChange={set("agency")} className={sel}>
-              <option value="">None</option>
-              {(lov["Agencies"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.agency} onChange={set("agency")} options={lov["Agencies"] ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>People group 1</label>
-            <select value={form.peopleGroup1} onChange={set("peopleGroup1")} className={sel}>
-              <option value="">Select...</option>
-              {(lov[pg1Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.peopleGroup1} onChange={set("peopleGroup1")} options={lov[pg1Key] ?? []} placeholder="Select..." className={sel} /></div>
 
           <div><label className={lbl}>People group 2</label>
-            <select value={form.peopleGroup2} onChange={set("peopleGroup2")} className={sel}>
-              <option value="">Select...</option>
-              {(lov[pg2Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.peopleGroup2} onChange={set("peopleGroup2")} options={lov[pg2Key] ?? []} placeholder="Select..." className={sel} /></div>
 
           <div><label className={lbl}>People group 3</label>
-            <select value={form.peopleGroup3} onChange={set("peopleGroup3")} className={sel}>
-              <option value="">None</option>
-              {(lov[pg3Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.peopleGroup3} onChange={set("peopleGroup3")} options={lov[pg3Key] ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Contract clause</label>
-            <select value={form.contractClause} onChange={set("contractClause")} className={sel}>
-              <option value="">None</option>
-              {(lov["Contract Clause"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.contractClause} onChange={set("contractClause")} options={lov["Contract Clause"] ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Payroll definition</label>
-            <select value={form.payrollDefinition} onChange={set("payrollDefinition")} className={sel}>
-              <option value="">None</option>
-              {(dd?.payrolls ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.payrollDefinition} onChange={set("payrollDefinition")} options={dd?.payrolls ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Job code</label>
-            <select value={form.jobCode} onChange={set("jobCode")} className={sel}>
-              <option value="">None</option>
-              {(dd?.jobs ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.jobCode} onChange={set("jobCode")} options={dd?.jobs ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Position code</label>
-            <select value={form.positionCode} onChange={set("positionCode")} className={sel}>
-              <option value="">None</option>
-              {(dd?.positions ?? []).map((v: string) => <option key={v}>{v}</option>)}
-            </select></div>
+            <SearchableSelect value={form.positionCode} onChange={set("positionCode")} options={dd?.positions ?? []} placeholder="None" className={sel} /></div>
 
           <div><label className={lbl}>Effective date</label>
             <input type="date" value={form.effectiveDate} onChange={set("effectiveDate")} className={sel} /></div>

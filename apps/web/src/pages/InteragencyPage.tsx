@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { SearchableSelect } from "../components/SearchableSelect";
 import { useQuery } from "@tanstack/react-query";
 import { useDropdowns } from "../hooks/useDataAll";
 import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
@@ -98,33 +99,13 @@ export function InteragencyPage() {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 bg-white border border-gray-200 rounded-xl p-4">
         {[
-          ["Element", <select value={elem} onChange={e => setElem(e.target.value)} className={selC}>
-            <option value="">Select...</option>
-            {(dd?.elements ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
-          ["Interagency (filters LE)", <select value={ia} onChange={e => setIa(e.target.value)} className={selC}>
-            <option value="">Select...</option>
-            {(dd?.interagencyLEs ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
-          ["Cost type", <select value={costType} onChange={e => setCostType(e.target.value)} className={selC}>
-            <option>Both</option><option>Cost</option><option>Offset</option>
-          </select>],
-          ["People group 1", <select value={pg1Filter} onChange={e => setPg1F(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov[pg1Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
-          ["People group 2", <select value={pg2Filter} onChange={e => setPg2F(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov[pg2Key] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
-          ["Agency", <select value={agency} onChange={e => setAgency(e.target.value)} className={selC}>
-            <option value="">All</option>
-            {(lov["Agencies"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
-          ["Contract clause", <select value={cc} onChange={e => setCc(e.target.value)} className={selC}>
-            <option value="">None</option>
-            {(lov["Contract Clause"] ?? []).map((v: string) => <option key={v}>{v}</option>)}
-          </select>],
+          ["Element", <SearchableSelect value={elem} onChange={v => setElem(v)} options={dd?.elements ?? []} placeholder="Select..." className={selC} />],
+          ["Interagency (filters LE)", <SearchableSelect value={ia} onChange={v => setIa(v)} options={dd?.interagencyLEs ?? []} placeholder="Select..." className={selC} />],
+          ["Cost type", <SearchableSelect value={costType} onChange={v => setCostType(v)} options={["Both","Cost","Offset"]} placeholder="Both" className={selC} />],
+          ["People group 1", <SearchableSelect value={pg1Filter} onChange={v => setPg1F(v)} options={lov[pg1Key] ?? []} placeholder="All" className={selC} />],
+          ["People group 2", <SearchableSelect value={pg2Filter} onChange={v => setPg2F(v)} options={lov[pg2Key] ?? []} placeholder="All" className={selC} />],
+          ["Agency", <SearchableSelect value={agency} onChange={v => setAgency(v)} options={lov["Agencies"] ?? []} placeholder="All" className={selC} />],
+          ["Contract clause", <SearchableSelect value={cc} onChange={v => setCc(v)} options={lov["Contract Clause"] ?? []} placeholder="None" className={selC} />],
         ].map(([label, control]) => (
           <div key={label as string} className="flex flex-col gap-1">
             <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">{label}</label>

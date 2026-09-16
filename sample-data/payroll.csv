@@ -1,2 +1,2 @@
-payrollDefinition,effStartDate,effEndDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9
-LOCAL PAYROLL,1951-01-01,4712-12-31,UNDP,ETH,99981,33055,,39902,0,0,0
+ldg,payrollDefinition,costingType,subTypeSequence,effStartDate,effEndDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9,createdAt,createdBy,updatedAt,updatedBy
+,LOCAL PAYROLL,,,1951-01-01,4712-12-31,UNDP,ETH,99981,33055,,39902,0,0,0,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl

@@ -181,6 +181,50 @@ const TABLE_MAP: Record<string, any> = {
 
 // -- ETL handler ---------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Date normalisation — all dates stored as YYYY-MM-DD
+// ---------------------------------------------------------------------------
+const DATE_COL_NAMES = new Set([
+  "eligibilityStartDate","eligibilityEndDate",
+  "effStartDate","effEndDate",
+  "parStartDate","parEndDate",
+  "startDate","endDate",
+]);
+
+function normaliseDate(v: string): string {
+  if (!v || !v.trim()) return v;
+  const s = v.trim();
+  // Already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  // DD/MM/YYYY
+  const dmy = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (dmy) return `${dmy[3]}-${dmy[2]!.padStart(2,"0")}-${dmy[1]!.padStart(2,"0")}`;
+  // DD-MMM-YYYY
+  const MONTHS: Record<string,string> = {
+    jan:"01",feb:"02",mar:"03",apr:"04",may:"05",jun:"06",
+    jul:"07",aug:"08",sep:"09",oct:"10",nov:"11",dec:"12",
+  };
+  const dmmy = s.match(/^(\d{1,2})[-/](\w{3})[-/](\d{4})$/i);
+  if (dmmy) {
+    const m = MONTHS[dmmy[2]!.toLowerCase()];
+    if (m) return `${dmmy[3]}-${m}-${dmmy[1]!.padStart(2,"0")}`;
+  }
+  // Excel date serial
+  const serial = Number(s);
+  if (!isNaN(serial) && serial > 1000 && serial < 3000000) {
+    return new Date(Date.UTC(1899, 11, 30) + serial * 86400000).toISOString().slice(0, 10);
+  }
+  return s;
+}
+
+function normaliseDatesInRow(row: Record<string, string | null>): Record<string, string | null> {
+  const out: Record<string, string | null> = {};
+  for (const [k, v] of Object.entries(row)) {
+    out[k] = (v !== null && DATE_COL_NAMES.has(k)) ? normaliseDate(v) : v;
+  }
+  return out;
+}
+
 etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
   console.log("[ETL] handler entered - body keys:", Object.keys(req.body || {}), "| content-type:", req.headers["content-type"]);
   const tokenPayload = decodeWebhookToken(req);
@@ -281,7 +325,7 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
         await tx.delete(table).where(eq(table.enterpriseId, enterpriseId));
         if (rows.length > 0) {
           const enriched = rows.map(r => ({
-            ...r,
+            ...normaliseDatesInRow(r),
             enterpriseId,
             ...auditFields,
           }));
