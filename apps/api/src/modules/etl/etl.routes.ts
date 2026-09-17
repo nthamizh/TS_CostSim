@@ -321,11 +321,17 @@ etlRouter.post("/etl-handler", asyncHandler(async (req, res) => {
         updatedAt: now,
         updatedBy: tokenPayload.sub ?? "etl",
       };
+      // Audit columns that must never come from the CSV — they're always
+      // set from the server context. Strip them before spreading so a
+      // string value from the CSV never reaches a timestamp DB column.
+      const AUDIT_STRIP = new Set(["createdAt","createdBy","updatedAt","updatedBy"]);
+      const stripAudit = (r: Record<string, string | null>) =>
+        Object.fromEntries(Object.entries(r).filter(([k]) => !AUDIT_STRIP.has(k)));
       await db.transaction(async (tx) => {
         await tx.delete(table).where(eq(table.enterpriseId, enterpriseId));
         if (rows.length > 0) {
           const enriched = rows.map(r => ({
-            ...normaliseDatesInRow(r),
+            ...normaliseDatesInRow(stripAudit(r)),
             enterpriseId,
             ...auditFields,
           }));
