@@ -325,7 +325,13 @@ costingRouter.post("/data/:table",
       updatedAt:    now,
       updatedBy:    req.serviceToken.sub ?? "ui",
     };
-    await db.insert(table).values(row);
+    try {
+      await db.insert(table).values(row);
+    } catch (e: unknown) {
+      // Re-throw with the table name prepended so the client error is actionable
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(`Insert into ${req.params.table} failed: ${msg}`);
+    }
     const rows = await db.select().from(table).where(eq(table.id, newId));
     res.status(201).json({ success: true, data: rows[0] ?? row });
   })
@@ -343,9 +349,14 @@ costingRouter.patch("/data/:table/:id",
       : eq(table.id, rowId);
     const now = new Date();
     const { id: _id, enterpriseId: _eid, createdAt: _ca, createdBy: _cb, ...rest } = req.body;
-    await db.update(table)
-      .set({ ...rest, updatedAt: now, updatedBy: req.serviceToken.sub ?? "ui" })
-      .where(where);
+    try {
+      await db.update(table)
+        .set({ ...rest, updatedAt: now, updatedBy: req.serviceToken.sub ?? "ui" })
+        .where(where);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : String(e);
+      throw new Error(`Update on ${req.params.table} failed: ${msg}`);
+    }
     const rows = await db.select().from(table).where(eq(table.id, rowId));
     if (rows.length === 0) { res.status(404).json({ success: false, error: "Row not found" }); return; }
     res.json({ success: true, data: rows[0] });
