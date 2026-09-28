@@ -300,6 +300,13 @@ costingRouter.get("/data/:table",
 // POST /v1/costing/data/:table         — insert one row
 // PATCH /v1/costing/data/:table/:id    — update one row
 // DELETE /v1/costing/data/:table/:id   — delete one row
+//
+// .returning() is intentionally avoided throughout. With drizzle-orm/node-postgres
+// and a dynamic any-typed table reference, the return type collapses to
+// Promise<any[] | QueryResult<never>>. QueryResult<never> is pg's raw result
+// object — not an array — so no destructuring, indexing, or cast satisfies TS.
+// Pattern instead: mutate without .returning(), then re-select by id.
+// For INSERT the UUID is pre-generated client-side so we can re-select.
 // ---------------------------------------------------------------------------
 
 costingRouter.post("/data/:table",
@@ -309,15 +316,18 @@ costingRouter.post("/data/:table",
     if (!table) { res.status(404).json({ success: false, error: "Unknown table" }); return; }
     const eid = req.serviceToken.enterpriseId;
     const now = new Date();
+    const newId = crypto.randomUUID();
     const row = {
       ...req.body,
+      id:           newId,
       enterpriseId: eid,
       createdBy:    req.serviceToken.sub ?? "ui",
       updatedAt:    now,
       updatedBy:    req.serviceToken.sub ?? "ui",
     };
-    const inserted = await db.insert(table).values(row).returning().then((r: unknown[]) => r[0]);
-    res.status(201).json({ success: true, data: inserted });
+    await db.insert(table).values(row);
+    const rows = await db.select().from(table).where(eq(table.id, newId));
+    res.status(201).json({ success: true, data: rows[0] ?? row });
   })
 );
 
@@ -326,18 +336,19 @@ costingRouter.patch("/data/:table/:id",
   asyncHandler(async (req, res) => {
     const table = TABLE_MAP[req.params.table!];
     if (!table) { res.status(404).json({ success: false, error: "Unknown table" }); return; }
+    const rowId = req.params.id!;
     const eid = req.serviceToken.enterpriseId;
     const where = eid
-      ? and(eq(table.id, req.params.id!), or(isNull(table.enterpriseId), eq(table.enterpriseId, eid)))
-      : eq(table.id, req.params.id!);
+      ? and(eq(table.id, rowId), or(isNull(table.enterpriseId), eq(table.enterpriseId, eid)))
+      : eq(table.id, rowId);
     const now = new Date();
     const { id: _id, enterpriseId: _eid, createdAt: _ca, createdBy: _cb, ...rest } = req.body;
-    const updated = await db.update(table)
+    await db.update(table)
       .set({ ...rest, updatedAt: now, updatedBy: req.serviceToken.sub ?? "ui" })
-      .where(where)
-      .returning().then((r: unknown[]) => r[0]);
-    if (!updated) { res.status(404).json({ success: false, error: "Row not found" }); return; }
-    res.json({ success: true, data: updated });
+      .where(where);
+    const rows = await db.select().from(table).where(eq(table.id, rowId));
+    if (rows.length === 0) { res.status(404).json({ success: false, error: "Row not found" }); return; }
+    res.json({ success: true, data: rows[0] });
   })
 );
 
@@ -346,12 +357,14 @@ costingRouter.delete("/data/:table/:id",
   asyncHandler(async (req, res) => {
     const table = TABLE_MAP[req.params.table!];
     if (!table) { res.status(404).json({ success: false, error: "Unknown table" }); return; }
+    const rowId = req.params.id!;
     const eid = req.serviceToken.enterpriseId;
-    const where = eid
-      ? and(eq(table.id, req.params.id!), or(isNull(table.enterpriseId), eq(table.enterpriseId, eid)))
-      : eq(table.id, req.params.id!);
-    const deleted = await db.delete(table).where(where).returning().then((r: unknown[]) => r[0]);
-    if (!deleted) { res.status(404).json({ success: false, error: "Row not found" }); return; }
-    res.json({ success: true, data: { id: req.params.id } });
+    const existing = await db.select().from(table).where(eq(table.id, rowId));
+    if (existing.length === 0) { res.status(404).json({ success: false, error: "Row not found" }); return; }
+    if (eid && existing[0].enterpriseId && existing[0].enterpriseId !== eid) {
+      res.status(403).json({ success: false, error: "Access denied" }); return;
+    }
+    await db.delete(table).where(eq(table.id, rowId));
+    res.json({ success: true, data: { id: rowId } });
   })
 );
