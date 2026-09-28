@@ -316,7 +316,7 @@ costingRouter.post("/data/:table",
       updatedAt:    now,
       updatedBy:    req.serviceToken.sub ?? "ui",
     };
-    const [inserted] = await db.insert(table).values(row).returning();
+    const inserted = await db.insert(table).values(row).returning().then(r => r[0]);
     res.status(201).json({ success: true, data: inserted });
   })
 );
@@ -332,10 +332,10 @@ costingRouter.patch("/data/:table/:id",
       : eq(table.id, req.params.id!);
     const now = new Date();
     const { id: _id, enterpriseId: _eid, createdAt: _ca, createdBy: _cb, ...rest } = req.body;
-    const [updated] = await db.update(table)
+    const updated = await db.update(table)
       .set({ ...rest, updatedAt: now, updatedBy: req.serviceToken.sub ?? "ui" })
       .where(where)
-      .returning();
+      .returning().then(r => r[0]);
     if (!updated) { res.status(404).json({ success: false, error: "Row not found" }); return; }
     res.json({ success: true, data: updated });
   })
@@ -350,7 +350,7 @@ costingRouter.delete("/data/:table/:id",
     const where = eid
       ? and(eq(table.id, req.params.id!), or(isNull(table.enterpriseId), eq(table.enterpriseId, eid)))
       : eq(table.id, req.params.id!);
-    const [deleted] = await db.delete(table).where(where).returning();
+    const deleted = await db.delete(table).where(where).returning().then(r => r[0]);
     if (!deleted) { res.status(404).json({ success: false, error: "Row not found" }); return; }
     res.json({ success: true, data: { id: req.params.id } });
   })
