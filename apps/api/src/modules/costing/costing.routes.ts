@@ -9,7 +9,7 @@ import {
 } from "./engine.js";
 import * as T from "../../db/schema.js";
 import type { RankMask } from "./engine.js";
-import { eq, or, isNull } from "drizzle-orm";
+import { eq, or, isNull, and } from "drizzle-orm";
 
 export const costingRouter: IRouter = Router();
 costingRouter.use(requireServiceToken);
@@ -293,5 +293,65 @@ costingRouter.get("/data/:table",
     const where  = eid ? or(isNull(entCol), eq(entCol, eid)) : isNull(entCol);
     const rows   = await db.select().from(table).where(where);
     res.json({ success: true, data: rows });
+  })
+);
+
+// ---------------------------------------------------------------------------
+// POST /v1/costing/data/:table         — insert one row
+// PATCH /v1/costing/data/:table/:id    — update one row
+// DELETE /v1/costing/data/:table/:id   — delete one row
+// ---------------------------------------------------------------------------
+
+costingRouter.post("/data/:table",
+  requirePermission("manageData"),
+  asyncHandler(async (req, res) => {
+    const table = TABLE_MAP[req.params.table!];
+    if (!table) { res.status(404).json({ success: false, error: "Unknown table" }); return; }
+    const eid = req.serviceToken.enterpriseId;
+    const now = new Date();
+    const row = {
+      ...req.body,
+      enterpriseId: eid,
+      createdBy:    req.serviceToken.sub ?? "ui",
+      updatedAt:    now,
+      updatedBy:    req.serviceToken.sub ?? "ui",
+    };
+    const [inserted] = await db.insert(table).values(row).returning();
+    res.status(201).json({ success: true, data: inserted });
+  })
+);
+
+costingRouter.patch("/data/:table/:id",
+  requirePermission("manageData"),
+  asyncHandler(async (req, res) => {
+    const table = TABLE_MAP[req.params.table!];
+    if (!table) { res.status(404).json({ success: false, error: "Unknown table" }); return; }
+    const eid = req.serviceToken.enterpriseId;
+    const where = eid
+      ? and(eq(table.id, req.params.id!), or(isNull(table.enterpriseId), eq(table.enterpriseId, eid)))
+      : eq(table.id, req.params.id!);
+    const now = new Date();
+    const { id: _id, enterpriseId: _eid, createdAt: _ca, createdBy: _cb, ...rest } = req.body;
+    const [updated] = await db.update(table)
+      .set({ ...rest, updatedAt: now, updatedBy: req.serviceToken.sub ?? "ui" })
+      .where(where)
+      .returning();
+    if (!updated) { res.status(404).json({ success: false, error: "Row not found" }); return; }
+    res.json({ success: true, data: updated });
+  })
+);
+
+costingRouter.delete("/data/:table/:id",
+  requirePermission("manageData"),
+  asyncHandler(async (req, res) => {
+    const table = TABLE_MAP[req.params.table!];
+    if (!table) { res.status(404).json({ success: false, error: "Unknown table" }); return; }
+    const eid = req.serviceToken.enterpriseId;
+    const where = eid
+      ? and(eq(table.id, req.params.id!), or(isNull(table.enterpriseId), eq(table.enterpriseId, eid)))
+      : eq(table.id, req.params.id!);
+    const [deleted] = await db.delete(table).where(where).returning();
+    if (!deleted) { res.status(404).json({ success: false, error: "Row not found" }); return; }
+    res.json({ success: true, data: { id: req.params.id } });
   })
 );

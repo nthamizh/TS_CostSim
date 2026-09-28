@@ -68,4 +68,13 @@ export const api = {
   // Raw table data for Synced Data page
   getData: (table: string) =>
     request(`/costing/data/${table}`),
+
+  insertRow: (table: string, row: Record<string, unknown>) =>
+    request(`/costing/data/${table}`, { method: "POST", body: JSON.stringify(row) }),
+
+  updateRow: (table: string, id: string, row: Record<string, unknown>) =>
+    request(`/costing/data/${table}/${id}`, { method: "PATCH", body: JSON.stringify(row) }),
+
+  deleteRow: (table: string, id: string) =>
+    request(`/costing/data/${table}/${id}`, { method: "DELETE" }),
 };
