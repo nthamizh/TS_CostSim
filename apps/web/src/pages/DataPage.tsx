@@ -23,6 +23,25 @@ const DEPT_DEFAULT_COA = ["dSeg1","dSeg2","dSeg3","dSeg4","dSeg5","dSeg6","dSeg7
 // Cols that should never appear in the modal form
 const FORM_SKIP        = new Set([...AUDIT_COLS, ...SYSTEM_COLS]);
 
+// Static column list per table — used when the table is empty so the Add
+// row form always has fields regardless of whether any rows exist yet.
+// Order matches the schema definition; system + audit cols are excluded here
+// (RowForm already skips them via FORM_SKIP) but included for grid display.
+const TABLE_COLS: Record<string, string[]> = {
+  eligibility:       ["elementName","eligibility","accountType","costingType","eligibilityStartDate","eligibilityEndDate","legalEmployer","peopleGroup1","peopleGroup2","peopleGroup3","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  department:        ["ldg","deptName","costingType","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9","dSeg1","dSeg2","dSeg3","dSeg4","dSeg5","dSeg6","dSeg7","dSeg8","dSeg9"],
+  person:            ["ldg","personNumber","assignmentNumber","personType","department","personAgency","legalEntity","peopleGroup","costingType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  person_element:    ["ldg","personNumber","assignmentNumber","element","personType","department","personAgency","legalEntity","peopleGroup","costingType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  position:          ["ldg","positionCode","positionName","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  job:               ["ldg","jobCode","jobName","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  payroll:           ["ldg","payrollDefinition","costingType","subTypeSequence","effStartDate","effEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  fast_formula:      ["key","element","priorityRank","legalEntity","peopleGroup1","peopleGroup2","personAgency","personType","contractClause","startDate","endDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  iac_ppg:           ["legalEntity","peopleGroupSegment","element","accountType","isActive","startDate","endDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  iac_seg:           ["legalEntity","accountType","segment","oldValue","newValue","startDate","endDate"],
+  valid_combinations:["legalEmployer","peopleGroup1","peopleGroup2","peopleGroup3"],
+  list_of_values:    ["category","value","sortOrder"],
+};
+
 const LABEL_MAP: Record<string, string> = {
   id:"ID", enterpriseId:"Enterprise",
   createdAt:"Created at", createdBy:"Created by",
@@ -340,7 +359,7 @@ export function DataPage() {
     !q || JSON.stringify(r).toLowerCase().includes(q.toLowerCase())
   );
 
-  const allCols     = data && data.length > 0 ? sortCols(Object.keys(data[0]!), active) : [];
+  const allCols     = data && data.length > 0 ? sortCols(Object.keys(data[0]!), active) : (TABLE_COLS[active] ?? []);
   const visibleCols = allCols.filter(c => {
     if (isSystem(c) && !showSystem) return false;
     if (isAudit(c)  && !showAudit)  return false;
@@ -387,7 +406,7 @@ export function DataPage() {
         </button>
 
         {/* Add button — only shown once data is loaded */}
-        {submitted && !isFetching && (
+        {submitted && (
           <button
             onClick={() => setModal({ type: "add" })}
             className="px-4 py-1.5 bg-indigo-600 text-white text-sm rounded-lg hover:bg-indigo-700 flex items-center gap-1.5"
