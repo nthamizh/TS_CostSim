@@ -52,7 +52,7 @@ export function EligibilityPage() {
     if (!filtered.length) return;
     const flat = filtered.map((r: any) => ({
       "Element":            elem,
-      "Account Type":       r.accountType,
+      "Costing Sub-type":   r.costingSubType,
       "Legal Employer":     r.legalEmployer,
       "People Group 1":     r.peopleGroup1,
       "People Group 2":     r.peopleGroup2,

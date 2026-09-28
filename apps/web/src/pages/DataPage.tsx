@@ -28,7 +28,7 @@ const FORM_SKIP        = new Set([...AUDIT_COLS, ...SYSTEM_COLS]);
 // Order matches the schema definition; system + audit cols are excluded here
 // (RowForm already skips them via FORM_SKIP) but included for grid display.
 const TABLE_COLS: Record<string, string[]> = {
-  eligibility:       ["elementName","eligibility","accountType","costingType","eligibilityStartDate","eligibilityEndDate","legalEmployer","peopleGroup1","peopleGroup2","peopleGroup3","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  eligibility:       ["ldg","elementName","eligibility","costingSubType","costingType","subTypeSequence","percentage","eligibilityStartDate","eligibilityEndDate","legalEmployer","peopleGroup1","peopleGroup2","peopleGroup3","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
   department:        ["ldg","deptName","costingType","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9","dSeg1","dSeg2","dSeg3","dSeg4","dSeg5","dSeg6","dSeg7","dSeg8","dSeg9"],
   person:            ["ldg","personNumber","assignmentNumber","personType","department","personAgency","legalEntity","peopleGroup","costingType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
   person_element:    ["ldg","personNumber","assignmentNumber","element","personType","department","personAgency","legalEntity","peopleGroup","costingType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
@@ -47,7 +47,8 @@ const LABEL_MAP: Record<string, string> = {
   createdAt:"Created at", createdBy:"Created by",
   updatedAt:"Updated at", updatedBy:"Updated by",
   elementName:"Element", eligibility:"Eligibility",
-  accountType:"Account type", costingType:"Costing type",
+  accountType:"Account type",   // IAC tables still use this
+  costingSubType:"Costing sub-type", costingType:"Costing type",
   subTypeSequence:"Sub-type seq",
   eligibilityStartDate:"Start date", eligibilityEndDate:"End date",
   legalEmployer:"Legal employer", legalEntity:"Legal entity",
@@ -78,6 +79,12 @@ const DATE_COLS = new Set([
 const NUM_COLS  = new Set(["percentage","sortOrder","priorityRank"]);
 // Boolean fields
 const BOOL_COLS = new Set(["isActive"]);
+// Enum select options for known enum columns
+const ENUM_OPTS: Record<string, string[]> = {
+  costingSubType: ["COST","BAL","OVERRIDE"],
+  costingType:    ["Any","Costed","Fixed","Distributed"],
+  accountType:    ["Cost","Offset","Both"],  // IAC tables
+};
 
 function colLabel(key: string): string {
   if (LABEL_MAP[key]) return LABEL_MAP[key]!;
@@ -174,6 +181,14 @@ function RowForm({ mode, table, columns, initial, onClose, onSaved }: RowFormPro
   const inputClass = "w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white";
 
   const renderField = (col: string) => {
+    if (ENUM_OPTS[col]) {
+      return (
+        <select value={form[col]} onChange={e => setForm(f => ({ ...f, [col]: e.target.value }))} className={inputClass}>
+          <option value="">— select —</option>
+          {ENUM_OPTS[col]!.map(v => <option key={v} value={v}>{v}</option>)}
+        </select>
+      );
+    }
     if (BOOL_COLS.has(col)) {
       return (
         <select value={form[col]} onChange={e => setForm(f => ({ ...f, [col]: e.target.value }))} className={inputClass}>

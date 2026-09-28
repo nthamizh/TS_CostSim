@@ -46,7 +46,9 @@ const anyMatch = (v: string|null|undefined, x: string|null|undefined): boolean =
 
 export interface EligRow extends Row9 {
   id: string;
-  eligibility: string; elementName: string; accountType: string;
+  eligibility: string; elementName: string;
+  costingSubType: string;   // "COST" | "BAL" | "OVERRIDE"
+  ldg: string|null; subTypeSequence: string|null; percentage: number|null;
   eligibilityStartDate: string; eligibilityEndDate: string;
   legalEmployer: string|null; peopleGroup1: string|null;
   peopleGroup2: string|null;  peopleGroup3: string|null;
@@ -149,7 +151,7 @@ export function matchEligibility(
 ): EligRow|null {
   const w = (v: string|null, x: string|null) => blank(v) || v === x;
   const cands = data.filter(r =>
-    r.elementName === elem && r.accountType === acctType &&
+    r.elementName === elem && r.costingSubType === acctType &&
     inRange(date, r.eligibilityStartDate, r.eligibilityEndDate) &&
     w(r.legalEmployer, le) && w(r.peopleGroup1, pg1) &&
     w(r.peopleGroup2, pg2) && w(r.peopleGroup3, pg3 ?? "")
@@ -300,7 +302,7 @@ export function runSimulation(
     rankMasks.map(m => [m.rank, new Set(m.excludedSegs)])
   );
 
-  const elCost = matchEligibility(data.eligibility, input.elementName, "Cost Account",
+  const elCost = matchEligibility(data.eligibility, input.elementName, "COST",
     input.legalEntity, input.peopleGroup1, input.peopleGroup2, input.peopleGroup3 ?? null, date);
 
   if (!elCost) {
@@ -416,7 +418,7 @@ export function runSimulation(
     trace.push(`✔ Split costing: ${costLines.length} cost lines (${costLines.map(l => l.sourceLabel).join(", ")})`);
   }
 
-  const elOff = matchEligibility(data.eligibility, input.elementName, "Offset Account",
+  const elOff = matchEligibility(data.eligibility, input.elementName, "BAL",
     input.legalEntity, input.peopleGroup1, input.peopleGroup2, input.peopleGroup3 ?? null, date);
   const offEligSegs = elOff ? segs(elOff) : Array(9).fill(null) as (string|null)[];
 
@@ -446,7 +448,7 @@ export interface EligibilityRow {
   legalEmployer: string; peopleGroup1: string; peopleGroup2: string; peopleGroup3: string|null;
   eligible: boolean; eligibilityRecord: string|null;
   segments: (string|null)[];
-  accountType: string;
+  costingSubType: string;
 }
 
 export function computeEligibilityGrid(
@@ -461,7 +463,7 @@ export function computeEligibilityGrid(
       eligible: !!match,
       eligibilityRecord: match?.eligibility ?? null,
       segments: match ? segs(match) : Array(9).fill(null),
-      accountType: acctType,
+      costingSubType: acctType,
     };
   });
 }
@@ -511,8 +513,8 @@ export function computeCombinationsGrid(
     if (pg1Filter && c.peopleGroup1  !== pg1Filter) continue;
     if (pg2Filter && c.peopleGroup2  !== pg2Filter) continue;
 
-    const elRow    = matchEligibility(data.eligibility, elem, "Cost Account",   c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
-    const elOffRow = matchEligibility(data.eligibility, elem, "Offset Account", c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
+    const elRow    = matchEligibility(data.eligibility, elem, "COST",   c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
+    const elOffRow = matchEligibility(data.eligibility, elem, "BAL", c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
 
     const personRow = usePerson
       ? data.person.find(r =>

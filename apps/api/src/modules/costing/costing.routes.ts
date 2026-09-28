@@ -142,7 +142,7 @@ costingRouter.get("/dropdowns",
 
 // ---------------------------------------------------------------------------
 // GET /v1/costing/eligibility?elem=&acctType=&date=
-// acctType: "Cost Account" | "Offset Account" | "both" (default = both)
+// acctType: "COST" | "BAL" | "both" (default = both)
 // Returns an accountType field on every row so the client can display or
 // filter without a second request.
 // ---------------------------------------------------------------------------
@@ -162,14 +162,14 @@ costingRouter.get("/eligibility",
     const elig = dataSrc.eligibility;
 
     if (acctType === "both") {
-      const cost   = computeEligibilityGrid(combos as any, elig as any, elem, "Cost Account",   date)
-                       .map(r => ({ ...r, accountType: "Cost Account" }));
-      const offset = computeEligibilityGrid(combos as any, elig as any, elem, "Offset Account", date)
-                       .map(r => ({ ...r, accountType: "Offset Account" }));
+      const cost   = computeEligibilityGrid(combos as any, elig as any, elem, "COST",   date)
+                       .map(r => ({ ...r, accountType: "COST" }));
+      const offset = computeEligibilityGrid(combos as any, elig as any, elem, "BAL", date)
+                       .map(r => ({ ...r, accountType: "BAL" }));
       res.json({ success: true, data: [...cost, ...offset] });
     } else {
       const rows = computeEligibilityGrid(combos as any, elig as any, elem, acctType, date)
-                     .map(r => ({ ...r, accountType: acctType }));
+                     .map(r => ({ ...r, costingSubType: acctType }));
       res.json({ success: true, data: rows });
     }
   })

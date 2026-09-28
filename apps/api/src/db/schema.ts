@@ -47,7 +47,9 @@ export const validCombinations = pgTable(
 );
 
 // ── Element Eligibility Costing ───────────────────────────────────────────────
-export const accountTypeEnum = pgEnum("costsim_account_type", ["Cost Account","Offset Account"]);
+// costingSubType replaces the old accountType enum.
+// COST = Cost Account (Dr), BAL = Offset/Balance Account (Cr), OVERRIDE = override entry.
+export const costingSubTypeEnum = pgEnum("costsim_costing_sub_type", ["COST","BAL","OVERRIDE"]);
 export const costingTypeEnum  = pgEnum("costsim_costing_type", ["Any","Costed","Fixed","Distributed"]);
 
 export const eligibilityCosting = pgTable(
@@ -55,10 +57,15 @@ export const eligibilityCosting = pgTable(
   {
     id:                   uuid("id").primaryKey().defaultRandom(),
     enterpriseId:         uuid("enterprise_id"),
+    ldg:                  text("ldg"),
     elementName:          text("element_name").notNull(),
     eligibility:          text("eligibility").notNull(),
-    accountType:          accountTypeEnum("account_type").notNull(),
+    // costingSubType replaces the old accountType field.
+    // COST = Cost Account (Dr), BAL = Offset/Balance Account (Cr), OVERRIDE = override.
+    costingSubType:       costingSubTypeEnum("costing_sub_type").notNull(),
     costingType:          costingTypeEnum("costing_type"),
+    subTypeSequence:      text("sub_type_sequence"),
+    percentage:           real("percentage"),
     eligibilityStartDate: text("eligibility_start_date").notNull(),
     eligibilityEndDate:   text("eligibility_end_date").notNull(),
     legalEmployer:        text("legal_employer"),
