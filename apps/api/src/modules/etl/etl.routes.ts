@@ -169,6 +169,7 @@ const TABLE_MAP: Record<string, any> = {
   department:         T.departmentCosting,
   person:             T.personCosting,
   person_element:     T.personElementCosting,
+  element_entry:      T.elementEntryCosting,
   position:           T.positionCosting,
   job:                T.jobCosting,
   payroll:            T.payrollCosting,

@@ -7,6 +7,7 @@ const TABLES = [
   { key:"department",         label:"Costing for Department" },
   { key:"person",             label:"Costing for Person" },
   { key:"person_element",     label:"Costing for Person · Element" },
+  { key:"element_entry",      label:"Costing for Element Entry" },
   { key:"position",           label:"Costing of Position" },
   { key:"job",                label:"Costing of Job" },
   { key:"payroll",            label:"Costing of Payroll" },
@@ -28,13 +29,14 @@ const FORM_SKIP        = new Set([...AUDIT_COLS, ...SYSTEM_COLS]);
 // Order matches the schema definition; system + audit cols are excluded here
 // (RowForm already skips them via FORM_SKIP) but included for grid display.
 const TABLE_COLS: Record<string, string[]> = {
-  eligibility:       ["ldg","elementName","eligibility","costingSubType","costingType","subTypeSequence","percentage","eligibilityStartDate","eligibilityEndDate","legalEmployer","peopleGroup1","peopleGroup2","peopleGroup3","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
-  department:        ["ldg","deptName","costingType","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9","dSeg1","dSeg2","dSeg3","dSeg4","dSeg5","dSeg6","dSeg7","dSeg8","dSeg9"],
-  person:            ["ldg","personNumber","assignmentNumber","personType","department","personAgency","legalEntity","peopleGroup","costingType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
-  person_element:    ["ldg","personNumber","assignmentNumber","element","personType","department","personAgency","legalEntity","peopleGroup","costingType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
-  position:          ["ldg","positionCode","positionName","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
-  job:               ["ldg","jobCode","jobName","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
-  payroll:           ["ldg","payrollDefinition","costingType","subTypeSequence","effStartDate","effEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  eligibility:       ["ldg","elementName","eligibility","costingSubType","costableType","costingType","subTypeSequence","percentage","eligibilityStartDate","eligibilityEndDate","legalEmployer","peopleGroup1","peopleGroup2","peopleGroup3","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  department:        ["ldg","deptName","costingType","costingSubType","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9","dSeg1","dSeg2","dSeg3","dSeg4","dSeg5","dSeg6","dSeg7","dSeg8","dSeg9"],
+  person:            ["ldg","personNumber","assignmentNumber","personType","department","personAgency","legalEntity","peopleGroup","costingType","costingSubType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  person_element:    ["ldg","personNumber","assignmentNumber","element","personType","department","personAgency","legalEntity","peopleGroup","costingType","costingSubType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  element_entry:     ["ldg","assignmentNumber","element","personType","department","personAgency","legalEntity","peopleGroup","costingType","costingSubType","subTypeSequence","percentage","parStartDate","parEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  position:          ["ldg","positionCode","positionName","costingType","costingSubType","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  job:               ["ldg","jobCode","jobName","costingType","costingSubType","subTypeSequence","effStartDate","effEndDate","percentage","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
+  payroll:           ["ldg","payrollDefinition","costingType","costingSubType","subTypeSequence","effStartDate","effEndDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
   fast_formula:      ["key","element","priorityRank","legalEntity","peopleGroup1","peopleGroup2","personAgency","personType","contractClause","startDate","endDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
   iac_ppg:           ["legalEntity","peopleGroupSegment","element","accountType","isActive","startDate","endDate","seg1","seg2","seg3","seg4","seg5","seg6","seg7","seg8","seg9"],
   iac_seg:           ["legalEntity","accountType","segment","oldValue","newValue","startDate","endDate"],
@@ -48,7 +50,8 @@ const LABEL_MAP: Record<string, string> = {
   updatedAt:"Updated at", updatedBy:"Updated by",
   elementName:"Element", eligibility:"Eligibility",
   accountType:"Account type",   // IAC tables still use this
-  costingSubType:"Costing sub-type", costingType:"Costing type",
+  costingSubType:"Costing sub-type", costableType:"Costable type",
+  costingType:"Costing type",
   subTypeSequence:"Sub-type seq",
   eligibilityStartDate:"Start date", eligibilityEndDate:"End date",
   legalEmployer:"Legal employer", legalEntity:"Legal entity",
@@ -80,10 +83,25 @@ const NUM_COLS  = new Set(["percentage","sortOrder","priorityRank"]);
 // Boolean fields
 const BOOL_COLS = new Set(["isActive"]);
 // Enum select options for known enum columns
+// Per-column enum options — rendered as <select> in the Add/Edit row form.
+// costingSubType options differ by table so we use TABLE_ENUM_OPTS for those.
 const ENUM_OPTS: Record<string, string[]> = {
+  // eligibility costingSubType
   costingSubType: ["COST","BAL","OVERRIDE"],
   costingType:    ["Any","Costed","Fixed","Distributed"],
   accountType:    ["Cost","Offset","Both"],  // IAC tables
+};
+
+// Per-table overrides for costingSubType and costingType
+const TABLE_ENUM_OPTS: Record<string, Record<string, string[]>> = {
+  payroll:        { costingSubType: ["COST","SUSP","DFLT"], costingType: ["PAY"] },
+  department:     { costingSubType: ["COST","SUSP","DFLT"], costingType: ["ORG"] },
+  job:            { costingSubType: ["COST"],               costingType: ["JOB"] },
+  position:       { costingSubType: ["COST"],               costingType: ["POS"] },
+  person:         { costingSubType: ["COST"],               costingType: ["PREL","ASG","TERM"] },
+  person_element: { costingSubType: ["COST"],               costingType: ["PRET","AET","TET"] },
+  element_entry:  { costingSubType: ["COST"],               costingType: ["EE"] },
+  eligibility:    { costingSubType: ["COST","BAL","OVERRIDE"], costableType: ["EL"] },
 };
 
 function colLabel(key: string): string {
@@ -180,12 +198,14 @@ function RowForm({ mode, table, columns, initial, onClose, onSaved }: RowFormPro
 
   const inputClass = "w-full border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 bg-white";
 
+  const tableEnumOpts = TABLE_ENUM_OPTS[table] ?? {};
   const renderField = (col: string) => {
-    if (ENUM_OPTS[col]) {
+    const opts = tableEnumOpts[col] ?? ENUM_OPTS[col];
+    if (opts) {
       return (
         <select value={form[col]} onChange={e => setForm(f => ({ ...f, [col]: e.target.value }))} className={inputClass}>
           <option value="">— select —</option>
-          {ENUM_OPTS[col]!.map(v => <option key={v} value={v}>{v}</option>)}
+          {opts.map(v => <option key={v} value={v}>{v}</option>)}
         </select>
       );
     }

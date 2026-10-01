@@ -1,8 +1,33 @@
 /**
- * Pure costing resolution engine.
+ * Pure costing resolution engine — 16-level hierarchy.
  * All logic lives here — no DB calls, fully testable.
  * Used by: /simulate, /eligibility, /combinations, /interagency.
+ *
+ * COST JOURNAL LINE (when costableType = Costed AND element !contains " Retro"):
+ *
+ *  Lvl  Table        costingType  costingSubType  Notes
+ *  16   Department   ORG          SUSP            Null-fill: any seg still null after lvl 1–15
+ *  15   Payroll      PAY          SUSP            Null-fill: any seg still null after lvl 1–14
+ *  14   Department   ORG          DFLT            Remainder when split dept pct < 100
+ *  13   Payroll      PAY          DFLT            Remainder when split payroll pct < 100
+ *  12   Eligibility  EL           OVERRIDE        Split by pct, ordered by subTypeSequence
+ *  11   Fast Formula FF           COST            Always 100%
+ *  10   Element entry EE          COST            Always 100% (editable on element entry)
+ *   9   Person Elem  AET          COST            Split by pct, ordered by subTypeSequence
+ *   8   Person Elem  PRET         COST            Split by pct, ordered by subTypeSequence
+ *   7   Person       ASG          COST            Split by pct, ordered by subTypeSequence
+ *   6   Person       PREL         COST            Split by pct, ordered by subTypeSequence
+ *   5   Position     POS          COST            Split by pct, ordered by subTypeSequence
+ *   4   Job          JOB          COST            Split by pct, ordered by subTypeSequence
+ *   3   Department   ORG          COST            Split by pct, ordered by subTypeSequence
+ *   2   Eligibility  EL           COST            Always 100%
+ *   1   Payroll      PAY          COST            Always 100%
+ *
+ * BALANCE (OFFSET) JOURNAL LINE:
+ *  Lvl 2  Cost journal line (mirror of cost segments)
+ *  Lvl 1  Eligibility EL BAL — always 100%, overrides cost segments per-segment
  */
+
 import type { SimulationInput } from "@costsim/types";
 
 export const SEGMENT_NAMES = [
@@ -48,38 +73,82 @@ export interface EligRow extends Row9 {
   id: string;
   eligibility: string; elementName: string;
   costingSubType: string;   // "COST" | "BAL" | "OVERRIDE"
+  costableType: string|null; // "EL"
   ldg: string|null; subTypeSequence: string|null; percentage: number|null;
   eligibilityStartDate: string; eligibilityEndDate: string;
   legalEmployer: string|null; peopleGroup1: string|null;
   peopleGroup2: string|null;  peopleGroup3: string|null;
 }
-export interface DeptRow    extends Row9 {
+export interface DeptRow extends Row9 {
   deptName: string; effStartDate: string; effEndDate: string;
+  costingType: string|null;    // "ORG"
+  costingSubType: string|null; // "COST" | "SUSP" | "DFLT"
+  subTypeSequence: string|null;
   percentage?: number|null;
   dSeg1?: string|null; dSeg2?: string|null; dSeg3?: string|null;
   dSeg4?: string|null; dSeg5?: string|null; dSeg6?: string|null;
   dSeg7?: string|null; dSeg8?: string|null; dSeg9?: string|null;
 }
-export interface PersonRow  extends Row9 {
+export interface PersonRow extends Row9 {
   assignmentNumber: string; legalEntity: string; peopleGroup: string;
   personAgency: string|null; personType: string|null; department: string;
+  costingType: string|null;    // "PREL" | "ASG" | "TERM"
+  costingSubType: string|null; // "COST"
+  subTypeSequence: string|null;
   parStartDate: string; parEndDate: string; percentage?: number|null;
 }
-export interface PersonElemRow extends PersonRow { element: string; }
+export interface PersonElemRow extends PersonRow {
+  element: string;
+  // costingType: "PRET" | "AET" | "TET"
+}
 export interface PositionRow extends Row9 {
   positionCode: string; positionName: string;
+  costingType: string|null;    // "POS"
+  costingSubType: string|null; // "COST"
+  subTypeSequence: string|null;
   effStartDate: string; effEndDate: string; percentage?: number|null;
 }
-export interface JobRow     extends Row9 {
+export interface JobRow extends Row9 {
   jobCode: string; jobName: string;
+  costingType: string|null;    // "JOB"
+  costingSubType: string|null; // "COST"
+  subTypeSequence: string|null;
   effStartDate: string; effEndDate: string; percentage?: number|null;
 }
-export interface PayrollRow extends Row9 { payrollDefinition: string; effStartDate: string; effEndDate: string; }
-export interface FFRow      extends Row9 { key: string; element: string; priorityRank: number; legalEntity: string|null; peopleGroup1: string|null; peopleGroup2: string|null; personAgency: string|null; personType: string|null; contractClause: string|null; startDate: string; endDate: string; }
-export interface IacPpgRow  extends Row9 { id: string; legalEntity: string; peopleGroupSegment: string; element: string; accountType: string; isActive: boolean; startDate: string; endDate: string; }
-export interface IacSegRow  { id: string; legalEntity: string; accountType: string; segment: string; oldValue: string|null; newValue: string|null; startDate: string; endDate: string; }
-export interface ComboRow   { id: string; legalEmployer: string; peopleGroup1: string; peopleGroup2: string; peopleGroup3: string|null; }
-export interface LovRow     { category: string; value: string; sortOrder: number; }
+export interface PayrollRow extends Row9 {
+  payrollDefinition: string; effStartDate: string; effEndDate: string;
+  costingType: string|null;    // "PAY"
+  costingSubType: string|null; // "COST" | "SUSP" | "DFLT"
+  subTypeSequence: string|null;
+}
+export interface ElementEntryRow extends Row9 {
+  assignmentNumber: string; element: string;
+  costingType: string|null;    // "EE"
+  costingSubType: string|null; // "COST"
+  subTypeSequence: string|null;
+  parStartDate: string; parEndDate: string; percentage?: number|null;
+}
+export interface FFRow extends Row9 {
+  key: string; element: string; priorityRank: number;
+  legalEntity: string|null; peopleGroup1: string|null; peopleGroup2: string|null;
+  personAgency: string|null; personType: string|null; contractClause: string|null;
+  startDate: string; endDate: string;
+}
+export interface IacPpgRow extends Row9 {
+  id: string; legalEntity: string; peopleGroupSegment: string;
+  element: string; accountType: string; isActive: boolean;
+  startDate: string; endDate: string;
+}
+export interface IacSegRow {
+  id: string; legalEntity: string; accountType: string;
+  segment: string; oldValue: string|null; newValue: string|null;
+  startDate: string; endDate: string;
+}
+export interface ComboRow {
+  id: string; legalEmployer: string; peopleGroup1: string;
+  peopleGroup2: string; peopleGroup3: string|null;
+}
+export interface LovRow { category: string; value: string; sortOrder: number; }
 
 export interface RankMask {
   rank: number;
@@ -91,6 +160,7 @@ export interface DataSources {
   department:    DeptRow[];
   person:        PersonRow[];
   personElement: PersonElemRow[];
+  elementEntry:  ElementEntryRow[];
   position:      PositionRow[];
   job:           JobRow[];
   payroll:       PayrollRow[];
@@ -99,7 +169,7 @@ export interface DataSources {
   iacSeg:        IacSegRow[];
 }
 
-// ── HierarchyLevel ────────────────────────────────────────────────────────────
+// ── Output types ──────────────────────────────────────────────────────────────
 
 export interface HierarchyLevel {
   rank: number; name: string; sub: string;
@@ -107,187 +177,128 @@ export interface HierarchyLevel {
   editable?: boolean; cls?: string;
 }
 
-// ── Split-aware journal line ──────────────────────────────────────────────────
-// A journal line may be split across multiple COA combinations (e.g. 50%/50%
-// department costing). Each split is one CostLine within the JournalLine.
-
+/** One journal line. Segments are already merged across levels. */
 export interface CostLine {
-  percentage: number;           // 0–100. 100 = single non-split line
-  sourceLabel: string;          // e.g. "DEPT-OHR (50%)" or "100%"
-  segments: (string|null)[];
-  isDefault: boolean;           // true = this line is the dept/person default COA
+  level:       number;          // owning / highest contributing level (1–16)
+  levelLabel:  string;          // e.g. "Lvl 7 ASG COST"
+  percentage:  number;          // 0–100
+  sourceLabel: string;
+  segments:    (string|null)[];
+  isDefault:   boolean;         // DFLT / SUSP line
+  costingType:    string;       // PAY | ORG | EL | FF | EE | JOB | POS | PREL | ASG | PRET | AET
+  costingSubType: string;       // COST | BAL | OVERRIDE | SUSP | DFLT
+  segLevels:   (number|null)[]; // level that supplied each segment (null = unresolved)
+  segSources:  (string|null)[]; // e.g. "ASG COST", "EL BAL"
+}
+
+export interface LevelResult {
+  level:      number;
+  matched:    boolean;          // source data found for this level
+  considered: boolean;          // false = unticked, inactive in Setup, or not applicable (retro)
+  userValue:  boolean;
+  lines:      CostLine[];       // raw rows at this level (before cross-level merge)
+  usedMask:   boolean[][];      // [line][segment] = this cell supplied the final value
 }
 
 export interface JournalLine {
   type: "Cost"|"Offset";
-  lines: CostLine[];            // one entry for each split; single line = array of 1
-  // Backwards-compatible: first line's segments (used by combinations grid)
-  segments: (string|null)[];
+  lines: CostLine[];
+  segments: (string|null)[];    // first line's segments — backwards compat
   levels: HierarchyLevel[];
 }
 
 export interface SimResult {
-  eligible: boolean; eligibilityRecord: string|null;
-  cost: JournalLine|null; offset: JournalLine|null;
-  traceMessages: string[];
+  eligible:          boolean;
+  eligibilityRecord: string|null;
+  isRetro:           boolean;
+  winnerLevel:       number|null;
+  cost:              JournalLine|null;
+  offset:            JournalLine|null;
+  levelResults:      LevelResult[];
+  traceMessages:     string[];
 }
 
-// ── Shared: segment resolution sources ───────────────────────────────────────
-
-export type SegSource = "ff"|"pers"|"dept"|"elig"|"cost"|"ppg"|"segov"|"";
-
+export type SegSource = "ff"|"pers"|"dept"|"elig"|"cost"|"ppg"|"segov"|"override"|"susp"|"dflt"|"";
 export interface ResolvedSeg { v: string|null; s: SegSource; old?: string|null; }
 
-// ── Internal helpers ──────────────────────────────────────────────────────────
+// ── Level metadata ────────────────────────────────────────────────────────────
 
+export const LEVEL_META: Record<number, { type: string; sub: string; label: string }> = {
+  1:  { type:"PAY",  sub:"COST",     label:"Payroll" },
+  2:  { type:"EL",   sub:"COST",     label:"Eligibility" },
+  3:  { type:"ORG",  sub:"COST",     label:"Department" },
+  4:  { type:"JOB",  sub:"COST",     label:"Job" },
+  5:  { type:"POS",  sub:"COST",     label:"Position" },
+  6:  { type:"PREL", sub:"COST",     label:"Person (PREL)" },
+  7:  { type:"ASG",  sub:"COST",     label:"Person (ASG)" },
+  8:  { type:"PRET", sub:"COST",     label:"Person-element (PRET)" },
+  9:  { type:"AET",  sub:"COST",     label:"Person-element (AET)" },
+  10: { type:"EE",   sub:"COST",     label:"Element entry" },
+  11: { type:"FF",   sub:"COST",     label:"Fast formula" },
+  12: { type:"EL",   sub:"OVERRIDE", label:"Eligibility override" },
+  13: { type:"PAY",  sub:"DFLT",     label:"Payroll default" },
+  14: { type:"ORG",  sub:"DFLT",     label:"Department default" },
+  15: { type:"PAY",  sub:"SUSP",     label:"Payroll suspense" },
+  16: { type:"ORG",  sub:"SUSP",     label:"Department suspense" },
+};
+const ALL_LEVELS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
+/** Levels that may carry several percentage rows. The highest one present owns the split. */
+const SPLIT_OWNER_ORDER = [12, 9, 8, 7, 6, 5, 4, 3];
+/** Priority for the per-segment waterfall: highest priority first. */
+const WATERFALL = [12, 11, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function seqNum(r: { subTypeSequence?: string|null }): number {
+  const n = Number(r.subTypeSequence ?? "0");
+  return isNaN(n) ? 0 : n;
+}
+function sortBySeq<T extends { subTypeSequence?: string|null }>(rows: T[]): T[] {
+  return [...rows].sort((a,b) => seqNum(a) - seqNum(b));
+}
 function specScore(r: EligRow): number {
   return [r.legalEmployer,r.peopleGroup1,r.peopleGroup2,r.peopleGroup3]
     .filter(v => !blank(v)).length;
 }
 
-export function matchEligibility(
-  data: EligRow[], elem: string, acctType: string,
-  le: string, pg1: string, pg2: string, pg3: string|null, date: Date
-): EligRow|null {
+/** Eligibility rows for an element + sub-type, date-bound and LE/PG-compatible. */
+function matchEligRows(
+  data: EligRow[], elem: string, subType: string,
+  le: string, pg1: string, pg2: string, pg3: string|null, date: Date,
+): EligRow[] {
   const w = (v: string|null, x: string|null) => blank(v) || v === x;
   const cands = data.filter(r =>
-    r.elementName === elem && r.costingSubType === acctType &&
+    r.elementName === elem && r.costingSubType === subType &&
     inRange(date, r.eligibilityStartDate, r.eligibilityEndDate) &&
     w(r.legalEmployer, le) && w(r.peopleGroup1, pg1) &&
     w(r.peopleGroup2, pg2) && w(r.peopleGroup3, pg3 ?? "")
   );
   cands.sort((a,b) => specScore(b) - specScore(a));
-  return cands[0] ?? null;
+  return cands;
 }
 
-/** Segment-wise merge: first non-null per index walking levels in order.
- *  rankMaskMap: rank → set of 0-based segment indices to skip for that rank. */
-function merge(
-  levels: HierarchyLevel[],
-  rankMaskMap: Map<number, Set<number>> = new Map(),
-): (string|null)[] {
-  return Array.from({length:9}, (_,i) => {
-    for (const L of levels) {
-      if (!L.segments) continue;
-      if (rankMaskMap.get(L.rank)?.has(i)) continue;
-      if (!blank(L.segments[i])) return L.segments[i]!;
-    }
-    return null;
-  });
+export function matchEligibility(
+  data: EligRow[], elem: string, subType: string,
+  le: string, pg1: string, pg2: string, pg3: string|null, date: Date,
+): EligRow|null {
+  return matchEligRows(data, elem, subType, le, pg1, pg2, pg3, date)[0] ?? null;
 }
 
-/**
- * Resolve cost segments for one split row (dept / person / position / job).
- * Returns the merged segment array for that split.
- */
-function resolveCostSegsForSplit(
-  splitSegs: (string|null)[],
-  ffSegs:    (string|null)[],
-  eligSegs:  (string|null)[],
-  splitRankExcluded: Set<number> = new Set(),
-): (string|null)[] {
-  return Array.from({length:9}, (_,i) => {
-    if (!blank(ffSegs[i]))    return ffSegs[i]!;
-    if (!splitRankExcluded.has(i) && !blank(splitSegs[i])) return splitSegs[i]!;
-    if (!blank(eligSegs[i]))  return eligSegs[i]!;
-    return null;
-  });
+function mkLine(
+  level: number, pct: number, sourceLabel: string, segments: (string|null)[],
+  type?: string, sub?: string,
+): CostLine {
+  const t = type ?? LEVEL_META[level]!.type;
+  const s = sub  ?? LEVEL_META[level]!.sub;
+  return {
+    level, levelLabel: `Lvl ${level} ${t} ${s}`, percentage: pct, sourceLabel,
+    segments, isDefault: s === "DFLT" || s === "SUSP", costingType: t, costingSubType: s,
+    segLevels:  segments.map(v => blank(v) ? null : level),
+    segSources: segments.map(v => blank(v) ? null : `${t} ${s}`),
+  };
 }
 
-/**
- * Build cost lines for a split-costing source.
- * splitRows — all matching rows for this source (e.g. all dept rows for a dept name)
- * If percentage < 100 and the row has dSeg columns, the remainder uses those as a
- * second line.  Returns one CostLine per split entry.
- */
-function buildSplitLines(
-  splitRows: (DeptRow|PersonRow|PersonElemRow|PositionRow|JobRow)[],
-  ffSegs:    (string|null)[],
-  eligSegs:  (string|null)[],
-  labelFn:   (r: DeptRow|PersonRow|PersonElemRow|PositionRow|JobRow) => string,
-  rankExcluded: Set<number> = new Set(),
-): CostLine[] {
-  if (splitRows.length === 0) return [];
-  const lines: CostLine[] = [];
-  let usedPct = 0;
-
-  for (const row of splitRows) {
-    const pct = row.percentage ?? 100;
-    usedPct += pct;
-    const mainSegs = resolveCostSegsForSplit(segs(row as Row9), ffSegs, eligSegs, rankExcluded);
-    lines.push({
-      percentage:  pct,
-      sourceLabel: `${labelFn(row as any)} (${pct}%)`,
-      segments:    mainSegs,
-      isDefault:   false,
-    });
-
-    // If this row has a default COA (d_seg) and pct < 100, add the remainder line
-    const dr = row as DeptRow;
-    const hasDefault = pct < 100 && [
-      dr.dSeg1,dr.dSeg2,dr.dSeg3,dr.dSeg4,dr.dSeg5,
-      dr.dSeg6,dr.dSeg7,dr.dSeg8,dr.dSeg9,
-    ].some(v => !blank(v));
-    if (hasDefault) {
-      const dSegs = [
-        norm(dr.dSeg1),norm(dr.dSeg2),norm(dr.dSeg3),
-        norm(dr.dSeg4),norm(dr.dSeg5),norm(dr.dSeg6),
-        norm(dr.dSeg7),norm(dr.dSeg8),norm(dr.dSeg9),
-      ] as (string|null)[];
-      const remainPct = Math.max(0, 100 - usedPct);
-      if (remainPct > 0 || splitRows.length === 1) {
-        lines.push({
-          percentage:  remainPct > 0 ? remainPct : 100 - pct,
-          sourceLabel: `${labelFn(row as any)} — Default COA (${100 - pct}%)`,
-          segments:    resolveCostSegsForSplit(dSegs, ffSegs, eligSegs, rankExcluded),
-          isDefault:   true,
-        });
-      }
-    }
-  }
-
-  // If total < 100 and no default COA rows, add a remainder line with elig segs
-  if (usedPct < 100) {
-    const remainPct = 100 - usedPct;
-    const lastRow = splitRows[splitRows.length - 1] as DeptRow;
-    const hasDefault = [
-      lastRow.dSeg1,lastRow.dSeg2,lastRow.dSeg3,
-    ].some(v => !blank(v));
-    if (!hasDefault) {
-      lines.push({
-        percentage:  remainPct,
-        sourceLabel: `Remainder — Eligibility costing (${remainPct}%)`,
-        segments:    eligSegs,
-        isDefault:   true,
-      });
-    }
-  }
-
-  return lines;
-}
-
-/**
- * Derive offset lines from cost lines.
- * Each cost line produces a corresponding offset line.
- * If the offset has its own eligibility segments, use those; otherwise mirror cost.
- */
-function buildOffsetLines(
-  costLines: CostLine[],
-  offEligSegs: (string|null)[],
-): CostLine[] {
-  return costLines.map(cl => {
-    const offSegs = Array.from({length:9}, (_,i) => {
-      if (!blank(offEligSegs[i])) return offEligSegs[i]!;
-      return cl.segments[i];
-    }) as (string|null)[];
-    return {
-      percentage:  cl.percentage,
-      sourceLabel: cl.sourceLabel,
-      segments:    offSegs,
-      isDefault:   cl.isDefault,
-    };
-  });
-}
+const EPS = 0.0001;
 
 // ── 1. runSimulation ──────────────────────────────────────────────────────────
 
@@ -295,150 +306,245 @@ export function runSimulation(
   input: SimulationInput,
   data: DataSources,
   rankMasks: RankMask[] = [],
+  activeLevels?: number[],
 ): SimResult {
-  const date = new Date(input.effectiveDate + "T00:00:00");
+  const date  = new Date(input.effectiveDate + "T00:00:00");
   const trace: string[] = [];
-  const rankMaskMap = new Map<number, Set<number>>(
-    rankMasks.map(m => [m.rank, new Set(m.excludedSegs)])
-  );
+  const isRetro  = input.elementName.includes(" Retro");
+  const excluded = new Set((input.excludedLevels ?? []).map(Number));
+  const overrides: Record<string,(string|null)[]> = (input.userOverrides ?? {}) as any;
+  const active   = activeLevels ? new Set(activeLevels) : new Set(ALL_LEVELS);
+  const maskMap  = new Map<number, Set<number>>(rankMasks.map(m => [m.rank, new Set(m.excludedSegs)]));
 
-  const elCost = matchEligibility(data.eligibility, input.elementName, "COST",
-    input.legalEntity, input.peopleGroup1, input.peopleGroup2, input.peopleGroup3 ?? null, date);
+  if (isRetro) trace.push("ℹ Retro element — levels 12–16 (OVERRIDE, DFLT, SUSP) do not apply");
 
-  if (!elCost) {
-    trace.push(`✖ Eligibility: no record for ${input.elementName} matches LE / PG1 / PG2 / PG3`);
-    return { eligible:false, eligibilityRecord:null, cost:null, offset:null, traceMessages:trace };
+  const le  = input.legalEntity  ?? "";
+  const pg1 = input.peopleGroup1 ?? "";
+  const pg2 = input.peopleGroup2 ?? "";
+  const pg3 = input.peopleGroup3 ?? null;
+
+  // Eligibility gate — an EL COST record must exist.
+  const elCostRows = matchEligRows(data.eligibility, input.elementName, "COST", le, pg1, pg2, pg3, date);
+  if (elCostRows.length === 0) {
+    trace.push(`✖ Eligibility (EL COST): no record for "${input.elementName}" matches LE / PG1 / PG2 / PG3`);
+    return { eligible:false, eligibilityRecord:null, isRetro, winnerLevel:null,
+             cost:null, offset:null, levelResults:[], traceMessages:trace };
   }
-  trace.push(`✔ Eligibility: ${elCost.eligibility}`);
+  const elCost = elCostRows[0]!;
+  trace.push(`✔ Eligibility (EL COST Lvl 2): ${elCost.eligibility}`);
 
-  const ffMatches = data.fastFormula.filter(r =>
-    r.element === input.elementName &&
-    inRange(date, r.startDate, r.endDate) &&
-    anyMatch(r.legalEntity, input.legalEntity) &&
-    anyMatch(r.peopleGroup1, input.peopleGroup1) &&
-    anyMatch(r.peopleGroup2, input.peopleGroup2) &&
-    anyMatch(r.personAgency, input.agency) &&
-    anyMatch(r.contractClause, input.contractClause ?? null)
-  ).sort((a,b) => a.priorityRank - b.priorityRank);
-  const ff = ffMatches[0] ?? null;
-  trace.push(ff ? `✔ Fast formula override: ${ff.key} (rank ${ff.priorityRank})` : `– Fast formula: no rule satisfied`);
+  // ── Collect raw rows per level ──────────────────────────────────────────────
+  const raw: Record<number, CostLine[]> = {};
+  for (const L of ALL_LEVELS) raw[L] = [];
+  const S = segs;
 
-  const persElemRows = input.assignmentNumber
-    ? data.personElement.filter(r => r.assignmentNumber === input.assignmentNumber &&
-        r.element === input.elementName && inRange(date, r.parStartDate, r.parEndDate))
-    : [];
-  trace.push(persElemRows.length > 0
-    ? `✔ Person-Element: ${persElemRows[0]!.assignmentNumber} (${persElemRows.length} split row${persElemRows.length > 1 ? "s" : ""})`
-    : `– Person-Element: no match`);
+  const payRows = input.payrollDefinition
+    ? data.payroll.filter(r => r.payrollDefinition === input.payrollDefinition &&
+        inRange(date, r.effStartDate, r.effEndDate)) : [];
+  const payBy = (sub: string) => payRows.find(r => (r.costingSubType ?? "COST") === sub) ?? null;
+  const deptRows = input.department
+    ? data.department.filter(r => r.deptName === input.department &&
+        inRange(date, r.effStartDate, r.effEndDate)) : [];
+  const deptBy = (sub: string) => sortBySeq(deptRows.filter(r => (r.costingSubType ?? "COST") === sub));
 
-  const personRows = input.assignmentNumber
-    ? data.person.filter(r => r.assignmentNumber === input.assignmentNumber &&
-        inRange(date, r.parStartDate, r.parEndDate))
-    : [];
-  trace.push(personRows.length > 0
-    ? `✔ Person-Assignment: ${personRows[0]!.assignmentNumber} (${personRows.length} split row${personRows.length > 1 ? "s" : ""})`
-    : `– Person-Assignment: no match`);
+  const pay = payBy("COST");
+  if (pay) raw[1] = [mkLine(1, 100, `Payroll ${pay.payrollDefinition}`, S(pay))];
+  raw[2] = [mkLine(2, 100, `Eligibility ${elCost.eligibility}`, S(elCost))];
+  raw[3] = deptBy("COST").map(r => mkLine(3, r.percentage ?? 100, `Dept ${r.deptName}`, S(r)));
 
-  const pos = input.positionCode
-    ? data.position.find(r => r.positionCode === input.positionCode &&
-        inRange(date, r.effStartDate, r.effEndDate)) ?? null
-    : null;
-  trace.push(pos ? `✔ Position: ${pos.positionCode} - ${pos.positionName}` : `– Position: no match`);
+  if (input.jobCode) raw[4] = sortBySeq(data.job.filter(r => r.jobCode === input.jobCode &&
+      (r.costingSubType ?? "COST") === "COST" && inRange(date, r.effStartDate, r.effEndDate)))
+    .map(r => mkLine(4, r.percentage ?? 100, `Job ${r.jobCode}`, S(r)));
+  if (input.positionCode) raw[5] = sortBySeq(data.position.filter(r => r.positionCode === input.positionCode &&
+      (r.costingSubType ?? "COST") === "COST" && inRange(date, r.effStartDate, r.effEndDate)))
+    .map(r => mkLine(5, r.percentage ?? 100, `Position ${r.positionCode}`, S(r)));
 
-  const job = input.jobCode
-    ? data.job.find(r => r.jobCode === input.jobCode &&
-        inRange(date, r.effStartDate, r.effEndDate)) ?? null
-    : null;
-  trace.push(job ? `✔ Job: ${job.jobCode} - ${job.jobName}` : `– Job: no match`);
+  const asg = input.assignmentNumber;
+  // A blank costingType is legacy data: person rows are treated as ASG, person-element rows as AET.
+  const personBy = (t: string, blankIs: boolean) => asg ? sortBySeq(data.person.filter(r =>
+      r.assignmentNumber === asg && (r.costingSubType ?? "COST") === "COST" &&
+      (r.costingType ? r.costingType === t : blankIs) &&
+      inRange(date, r.parStartDate, r.parEndDate))) : [];
+  const persElBy = (t: string, blankIs: boolean) => asg ? sortBySeq(data.personElement.filter(r =>
+      r.assignmentNumber === asg && r.element === input.elementName &&
+      (r.costingSubType ?? "COST") === "COST" &&
+      (r.costingType ? r.costingType === t : blankIs) &&
+      inRange(date, r.parStartDate, r.parEndDate))) : [];
+  raw[6] = personBy("PREL", false).map(r => mkLine(6, r.percentage ?? 100, `Person PREL ${r.assignmentNumber}`, S(r)));
+  raw[7] = personBy("ASG",  true ).map(r => mkLine(7, r.percentage ?? 100, `Person ASG ${r.assignmentNumber}`,  S(r)));
+  raw[8] = persElBy("PRET", false).map(r => mkLine(8, r.percentage ?? 100, `Person-element PRET ${r.assignmentNumber}`, S(r)));
+  raw[9] = persElBy("AET",  true ).map(r => mkLine(9, r.percentage ?? 100, `Person-element AET ${r.assignmentNumber}`,  S(r)));
 
-  const deptRows = data.department.filter(r =>
-    r.deptName === input.department && inRange(date, r.effStartDate, r.effEndDate));
-  trace.push(deptRows.length
-    ? `✔ Department: ${deptRows[0]!.deptName} (${deptRows.length} split row${deptRows.length > 1 ? "s" : ""})`
-    : `– Department: no match`);
+  // Level 10 — element entry: always 100%, one row.
+  const ee = asg ? sortBySeq((data.elementEntry ?? []).filter(r =>
+      r.assignmentNumber === asg && r.element === input.elementName &&
+      (r.costingSubType ?? "COST") === "COST" && inRange(date, r.parStartDate, r.parEndDate)))[0] ?? null : null;
+  if (ee) raw[10] = [mkLine(10, 100, `Element entry ${ee.assignmentNumber}`, S(ee))];
 
-  const payroll = input.payrollDefinition
-    ? data.payroll.find(r => r.payrollDefinition === input.payrollDefinition &&
-        inRange(date, r.effStartDate, r.effEndDate)) ?? null
-    : null;
-  trace.push(payroll ? `✔ Payroll: ${payroll.payrollDefinition}` : `– Payroll: no match`);
+  // Level 11 — fast formula: always 100%.
+  const ff = data.fastFormula.filter(r =>
+    r.element === input.elementName && inRange(date, r.startDate, r.endDate) &&
+    anyMatch(r.legalEntity, le) && anyMatch(r.peopleGroup1, pg1) && anyMatch(r.peopleGroup2, pg2) &&
+    anyMatch(r.personAgency, input.agency) && anyMatch(r.contractClause, input.contractClause ?? null)
+  ).sort((a,b) => a.priorityRank - b.priorityRank)[0] ?? null;
+  if (ff) raw[11] = [mkLine(11, 100, `Fast formula ${ff.key} (rank ${ff.priorityRank})`, S(ff))];
 
-  const ffSegs   = ff ? segs(ff) : Array(9).fill(null) as (string|null)[];
-  const eligSegs = segs(elCost);
+  // Level 12 — eligibility OVERRIDE: only the most specific rows form the split group.
+  const ovAll = matchEligRows(data.eligibility, input.elementName, "OVERRIDE", le, pg1, pg2, pg3, date);
+  const topSpec = ovAll.length ? specScore(ovAll[0]!) : 0;
+  raw[12] = sortBySeq(ovAll.filter(r => specScore(r) === topSpec))
+    .map(r => mkLine(12, r.percentage ?? 100, `Elig OVERRIDE ${r.eligibility}`, S(r)));
 
-  // The costing hierarchy levels shown in the ladder (first split only for display)
-  const displayPersElem = persElemRows[0] ?? null;
-  const displayPerson   = personRows[0] ?? null;
+  // Levels 13–16 — default and suspense rows.
+  const pd13 = payBy("DFLT"), pd15 = payBy("SUSP");
+  const d14 = deptBy("DFLT")[0], d16 = deptBy("SUSP")[0];
+  if (pd13) raw[13] = [mkLine(13, 100, `Payroll DFLT ${pd13.payrollDefinition}`, S(pd13))];
+  if (d14)  raw[14] = [mkLine(14, 100, `Dept DFLT ${d14.deptName}`, S(d14))];
+  if (pd15) raw[15] = [mkLine(15, 100, `Payroll SUSP ${pd15.payrollDefinition}`, S(pd15))];
+  if (d16)  raw[16] = [mkLine(16, 100, `Dept SUSP ${d16.deptName}`, S(d16))];
 
-  const levels: HierarchyLevel[] = [
-    { rank:1, name:"Fast formula override",          sub:"04 - lowest satisfied rank", sourceId: ff?.key ?? null, segments: ff ? segs(ff) : null, cls:"override" },
-    { rank:2, name:"Element entry costing",           sub:"entered on the element entry", sourceId: input.elementName, segments: Array(9).fill(null), editable:true },
-    { rank:3, name:"Costing for person - element",    sub:"Costing For Person-Element", sourceId: displayPersElem?.assignmentNumber ?? null, segments: displayPersElem ? segs(displayPersElem) : null },
-    { rank:4, name:"Costing for person - assignment", sub:"03 - assignment costing", sourceId: displayPerson?.assignmentNumber ?? null, segments: displayPerson ? segs(displayPerson) : null },
-    { rank:5, name:"Costing for position",            sub:`Costing of Position - ${pos?.positionName ?? input.positionCode ?? "-"}`, sourceId: pos?.positionCode ?? null, segments: pos ? segs(pos) : null },
-    { rank:6, name:"Costing for job",                 sub:`Costing of Job - ${job?.jobName ?? input.jobCode ?? "-"}`, sourceId: job?.jobCode ?? null, segments: job ? segs(job) : null },
-    { rank:7, name:"Costing for department",          sub:"02 - department costing", sourceId: deptRows[0]?.deptName ?? null, segments: deptRows[0] ? segs(deptRows[0]) : null },
-    { rank:8, name:"Element eligibility costing",     sub:"01 - cost account", sourceId: elCost.eligibility, segments: eligSegs },
-    { rank:9, name:"Costing for payroll",             sub:`Costing of Payroll - ${payroll?.payrollDefinition ?? input.payrollDefinition ?? "-"}`, sourceId: payroll?.payrollDefinition ?? null, segments: payroll ? segs(payroll) : null },
-  ];
+  // User-entered values replace whatever the level resolved.
+  const userLevels = new Set<number>();
+  for (const [k, v] of Object.entries(overrides)) {
+    const L = Number(k);
+    if (!LEVEL_META[L] || !Array.isArray(v)) continue;
+    userLevels.add(L);
+    raw[L] = [mkLine(L, 100, "User value", v.map(norm))];
+  }
 
-  // Determine which split source drives the cost lines.
-  // Priority: person-element > person > position > job > department > eligibility
-  let costLines: CostLine[];
+  // A level contributes when it is active in Setup, ticked, applicable, and has data.
+  const considered = (L: number) =>
+    active.has(L) && !excluded.has(L) && !(isRetro && L >= 12);
+  const contributes = (L: number) => considered(L) && raw[L]!.length > 0;
+  for (const L of ALL_LEVELS) {
+    trace.push(raw[L]!.length
+      ? `${considered(L) ? "✔" : "–"} Lvl ${L} ${LEVEL_META[L]!.type} ${LEVEL_META[L]!.sub}: ${raw[L]!.length} row(s)${considered(L) ? "" : " (not considered)"}`
+      : `– Lvl ${L} ${LEVEL_META[L]!.type} ${LEVEL_META[L]!.sub}: no match`);
+  }
 
-  if (persElemRows.length > 0) {
-    costLines = buildSplitLines(persElemRows, ffSegs, eligSegs,
-      r => `Person-Element ${(r as PersonElemRow).assignmentNumber}`,
-      rankMaskMap.get(3) ?? new Set());
-  } else if (personRows.length > 0) {
-    costLines = buildSplitLines(personRows, ffSegs, eligSegs,
-      r => `Person ${(r as PersonRow).assignmentNumber}`,
-      rankMaskMap.get(4) ?? new Set());
-  } else if (pos) {
-    costLines = buildSplitLines([pos], ffSegs, eligSegs,
-      r => `Position ${(r as PositionRow).positionCode}`,
-      rankMaskMap.get(5) ?? new Set());
-  } else if (job) {
-    costLines = buildSplitLines([job], ffSegs, eligSegs,
-      r => `Job ${(r as JobRow).jobCode}`,
-      rankMaskMap.get(6) ?? new Set());
-  } else if (deptRows.length > 0) {
-    costLines = buildSplitLines(deptRows, ffSegs, eligSegs,
-      r => `Dept ${(r as DeptRow).deptName}`,
-      rankMaskMap.get(7) ?? new Set());
+  // Segment value from the highest-priority contributing level.
+  // `own` substitutes the line being resolved for its level's representative row.
+  const pick = (i: number, order: number[], own?: { level: number; line: CostLine }) => {
+    for (const L of order) {
+      if (!contributes(L) || maskMap.get(L)?.has(i)) continue;
+      const line = own && own.level === L ? own.line : raw[L]![0]!;
+      const v = line.segments[i];
+      if (!blank(v)) return { v: v!, level: L };
+    }
+    return null;
+  };
+  const resolve = (
+    order: number[], own: { level: number; line: CostLine } | undefined,
+    pct: number, label: string, ownerLevel: number|null,
+  ): CostLine => {
+    const segments: (string|null)[] = [], segLevels: (number|null)[] = [], segSources: (string|null)[] = [];
+    for (let i = 0; i < 9; i++) {
+      const r = pick(i, order, own);
+      segments.push(r?.v ?? null);
+      segLevels.push(r?.level ?? null);
+      segSources.push(r ? `${LEVEL_META[r.level]!.type} ${LEVEL_META[r.level]!.sub}` : null);
+    }
+    const top = ownerLevel ?? Math.max(0, ...segLevels.filter((x): x is number => x !== null));
+    const meta = LEVEL_META[top] ?? LEVEL_META[1]!;
+    return { level: top, levelLabel: `Lvl ${top} ${meta.type} ${meta.sub}`, percentage: pct,
+             sourceLabel: label, segments, isDefault: false,
+             costingType: meta.type, costingSubType: meta.sub, segLevels, segSources };
+  };
+
+  // ── Cost journal lines ──────────────────────────────────────────────────────
+  const owner = SPLIT_OWNER_ORDER.find(contributes) ?? null;
+  let costLines: CostLine[] = [];
+  if (owner === null) {
+    costLines = [resolve(WATERFALL, undefined, 100, "100%", null)];
   } else {
-    // No split source — single line from FF override + eligibility
-    const singleSegs = Array.from({length:9}, (_,i) =>
-      !blank(ffSegs[i]) ? ffSegs[i]! : (eligSegs[i] ?? null)
-    ) as (string|null)[];
-    costLines = [{ percentage:100, sourceLabel:"100%", segments: singleSegs, isDefault:false }];
+    costLines = raw[owner]!.map(l => resolve(WATERFALL, { level: owner, line: l }, l.percentage, l.sourceLabel, owner));
+    const total = costLines.reduce((s, l) => s + l.percentage, 0);
+    if (total > 100 + EPS) trace.push(`⚠ Lvl ${owner} split totals ${total}% (over 100%)`);
+    if (total < 100 - EPS && !isRetro) {
+      const remain = Math.round((100 - total) * 1e6) / 1e6;
+      const without = WATERFALL.filter(L => L !== owner);
+      // Remainder takes the default COA (dept DFLT, then payroll DFLT), then falls back to the other levels.
+      const dflt = [14, 13].filter(contributes);
+      const line = resolve(without, undefined, remain,
+        dflt.length ? `Default COA (${remain}%)` : `Remainder, no DFLT defined (${remain}%)`, null);
+      for (let i = 0; i < 9; i++) {
+        const d = dflt.find(L => !blank(raw[L]![0]!.segments[i]) && !maskMap.get(L)?.has(i));
+        if (d !== undefined) {
+          line.segments[i] = raw[d]![0]!.segments[i]!;
+          line.segLevels[i] = d;
+          line.segSources[i] = `${LEVEL_META[d]!.type} ${LEVEL_META[d]!.sub}`;
+        }
+      }
+      const top = dflt[0] ?? Math.max(0, ...line.segLevels.filter((x): x is number => x !== null));
+      const meta = LEVEL_META[top] ?? LEVEL_META[1]!;
+      line.level = top; line.levelLabel = `Lvl ${top} ${meta.type} ${meta.sub}`;
+      line.costingType = meta.type; line.costingSubType = dflt.length ? "DFLT" : meta.sub;
+      line.isDefault = true;
+      costLines.push(line);
+      trace.push(dflt.length
+        ? `✔ ${remain}% remainder from default COA (Lvl ${dflt[0]})`
+        : `⚠ ${remain}% remainder but no DFLT row defined — filled from other levels`);
+    }
   }
 
-  if (costLines.length > 1) {
-    trace.push(`✔ Split costing: ${costLines.length} cost lines (${costLines.map(l => l.sourceLabel).join(", ")})`);
+  // Suspense fills null segments only: dept SUSP (16) first, then payroll SUSP (15).
+  if (!isRetro) {
+    for (const line of costLines) {
+      for (let i = 0; i < 9; i++) {
+        if (!blank(line.segments[i])) continue;
+        const s = [16, 15].find(L => contributes(L) && !maskMap.get(L)?.has(i) && !blank(raw[L]![0]!.segments[i]));
+        if (s !== undefined) {
+          line.segments[i] = raw[s]![0]!.segments[i]!;
+          line.segLevels[i] = s;
+          line.segSources[i] = `${LEVEL_META[s]!.type} SUSP`;
+        }
+      }
+    }
+    const filled = costLines.some(l => l.segLevels.some(x => x === 15 || x === 16));
+    if (filled) trace.push("✔ Suspense (Lvl 15/16) filled unresolved segments");
+  }
+  for (const l of costLines) {
+    l.segLevels.forEach((lv, i) => { if (lv === null) trace.push(`⚠ Segment ${i + 1}: unresolved`); });
+    break;
   }
 
-  const elOff = matchEligibility(data.eligibility, input.elementName, "BAL",
-    input.legalEntity, input.peopleGroup1, input.peopleGroup2, input.peopleGroup3 ?? null, date);
-  const offEligSegs = elOff ? segs(elOff) : Array(9).fill(null) as (string|null)[];
+  // ── Balance (offset) lines: EL BAL overrides per segment, else mirror cost ──
+  const elBal = matchEligibility(data.eligibility, input.elementName, "BAL", le, pg1, pg2, pg3, date);
+  const bal   = elBal ? S(elBal) : (Array(9).fill(null) as (string|null)[]);
+  trace.push(elBal ? `✔ Eligibility BAL (balance Lvl 1): ${elBal.eligibility}`
+                   : "– Eligibility BAL: none — balance mirrors cost");
+  const offsetLines: CostLine[] = costLines.map(cl => {
+    const segments = cl.segments.map((v, i) => !blank(bal[i]) ? bal[i]! : v);
+    const fromBal  = cl.segments.map((_, i) => !blank(bal[i]));
+    return { ...cl, levelLabel: "Balance", costingSubType: "BAL", isDefault: cl.isDefault,
+      segments,
+      segLevels:  cl.segLevels.map((lv, i) => fromBal[i] ? 1 : lv),
+      segSources: cl.segSources.map((s, i) => fromBal[i] ? "EL BAL" : s) };
+  });
 
-  const offLevels: HierarchyLevel[] = [
-    { rank:1, name:"Element eligibility costing", sub:"01 - offset account", sourceId: elOff?.eligibility ?? null, segments: elOff ? offEligSegs : null },
-    { rank:2, name:"Final cost account",           sub:"the line above",      sourceId: "-",                        segments: costLines[0]!.segments },
-  ];
+  // ── Per-level results for the UI ────────────────────────────────────────────
+  const levelResults: LevelResult[] = ALL_LEVELS.map(L => {
+    const lines = raw[L]!;
+    const usedMask = lines.map((_, k) => Array.from({ length: 9 }, (_, i) =>
+      L === owner ? costLines[k]?.segLevels[i] === L
+                  : k === 0 && costLines.some(cl => cl.segLevels[i] === L)));
+    return { level: L, matched: lines.length > 0, considered: considered(L),
+             userValue: userLevels.has(L), lines, usedMask };
+  });
+  const used = costLines.flatMap(l => l.segLevels.filter((x): x is number => x !== null));
+  const winnerLevel = owner ?? (used.length ? Math.max(...used) : null);
 
-  const offsetLines = buildOffsetLines(costLines, offEligSegs);
-
-  // backwards-compat: expose first line's segments as top-level .segments
-  const firstCostSegs  = costLines[0]!.segments;
-  const firstOffSegs   = offsetLines[0]!.segments;
+  const hier: HierarchyLevel[] = [...ALL_LEVELS].reverse().map(L => ({
+    rank: L, name: LEVEL_META[L]!.label, sub: `${LEVEL_META[L]!.type} ${LEVEL_META[L]!.sub}`,
+    sourceId: raw[L]![0]?.sourceLabel ?? null, segments: raw[L]![0]?.segments ?? null,
+    editable: L === 10 && raw[10]!.length === 0,
+  }));
 
   return {
-    eligible: true,
-    eligibilityRecord: elCost.eligibility,
-    cost:   { type:"Cost",   lines: costLines,  segments: firstCostSegs, levels },
-    offset: { type:"Offset", lines: offsetLines, segments: firstOffSegs,  levels: offLevels },
-    traceMessages: trace,
+    eligible: true, eligibilityRecord: elCost.eligibility, isRetro, winnerLevel,
+    cost:   { type: "Cost",   lines: costLines,   segments: costLines[0]!.segments,   levels: hier },
+    offset: { type: "Offset", lines: offsetLines, segments: offsetLines[0]!.segments, levels: hier },
+    levelResults, traceMessages: trace,
   };
 }
 
@@ -513,8 +619,8 @@ export function computeCombinationsGrid(
     if (pg1Filter && c.peopleGroup1  !== pg1Filter) continue;
     if (pg2Filter && c.peopleGroup2  !== pg2Filter) continue;
 
-    const elRow    = matchEligibility(data.eligibility, elem, "COST",   c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
-    const elOffRow = matchEligibility(data.eligibility, elem, "BAL", c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
+    const elRow    = matchEligibility(data.eligibility, elem, "COST", c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
+    const elOffRow = matchEligibility(data.eligibility, elem, "BAL",  c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
 
     const personRow = usePerson
       ? data.person.find(r =>
@@ -536,9 +642,9 @@ export function computeCombinationsGrid(
         ).sort((a,b) => a.priorityRank - b.priorityRank)[0] ?? null
       : null;
 
-    const ffSegs   = ffRow    ? segs(ffRow)    : Array(9).fill(null);
-    const realPersSegs = personRow ? segs(personRow) : Array(9).fill(null);
-    const realDeptSegs = deptRow   ? segs(deptRow)   : Array(9).fill(null);
+    const ffSegs_       = ffRow    ? segs(ffRow)    : Array(9).fill(null);
+    const realPersSegs  = personRow ? segs(personRow) : Array(9).fill(null);
+    const realDeptSegs  = deptRow   ? segs(deptRow)   : Array(9).fill(null);
     const persSegs: (string|null)[] = realPersSegs.some(v => v !== null)
       ? realPersSegs
       : (includePers ? PERS_PLACEHOLDER : Array(9).fill(null));
@@ -548,9 +654,9 @@ export function computeCombinationsGrid(
 
     const cost: ResolvedSeg[] = Array.from({length:9}, (_,i) => {
       if (!elRow) return { v: null, s: "" as SegSource };
-      if (!blank(ffSegs[i]))   return { v: ffSegs[i],   s: "ff"   as SegSource };
-      if (!blank(persSegs[i])) return { v: persSegs[i], s: "pers" as SegSource };
-      if (!blank(deptSegs[i])) return { v: deptSegs[i], s: "dept" as SegSource };
+      if (!blank(ffSegs_[i]))   return { v: ffSegs_[i],   s: "ff"   as SegSource };
+      if (!blank(persSegs[i]))  return { v: persSegs[i],  s: "pers" as SegSource };
+      if (!blank(deptSegs[i]))  return { v: deptSegs[i],  s: "dept" as SegSource };
       const e = segs(elRow)[i];
       return blank(e) ? { v: null, s: "" as SegSource } : { v: e!, s: "elig" as SegSource };
     });
@@ -569,7 +675,7 @@ export function computeCombinationsGrid(
       ffRule: ffRow?.key ?? null, ffRank: ffRow?.priorityRank ?? null,
       personMatch: personRow?.assignmentNumber ?? null,
       deptMatch: deptRow?.deptName ?? null,
-      deptSegments:   deptSegs,
+      deptSegments:  deptSegs,
       personSegments: persSegs,
     };
 

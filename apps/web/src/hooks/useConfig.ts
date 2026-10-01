@@ -5,18 +5,26 @@ export const DEFAULT_SEGMENT_NAMES = [
   "Segment 1","Segment 2","Segment 3","Segment 4","Segment 5",
   "Segment 6","Segment 7","Segment 8","Segment 9",
 ];
-export const DEFAULT_ACTIVE_RANKS = [1,2,3,4,5,6,7,8,9];
+export const DEFAULT_ACTIVE_RANKS = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
 
+/** The 16 costing levels. Higher number = higher priority; 13–16 are fallbacks. */
 export const RANK_LABELS: Record<number, { name: string; sub: string }> = {
-  1: { name: "Fast formula override",          sub: "04 - lowest satisfied rank" },
-  2: { name: "Element entry costing",           sub: "entered on the element entry" },
-  3: { name: "Costing for person - element",    sub: "Costing For Person-Element" },
-  4: { name: "Costing for person - assignment", sub: "03 - assignment costing" },
-  5: { name: "Costing for position",            sub: "Costing of Position" },
-  6: { name: "Costing for job",                 sub: "Costing of Job" },
-  7: { name: "Costing for department",          sub: "02 - department costing" },
-  8: { name: "Element eligibility costing",     sub: "01 - cost account" },
-  9: { name: "Costing for payroll",             sub: "Costing of Payroll" },
+  1:  { name: "Costing of payroll",                sub: "PAY COST - always 100%" },
+  2:  { name: "Element eligibility costing",       sub: "EL COST - always 100%" },
+  3:  { name: "Costing for department",            sub: "ORG COST - split by percentage" },
+  4:  { name: "Costing of job",                    sub: "JOB COST - split by percentage" },
+  5:  { name: "Costing of position",               sub: "POS COST - split by percentage" },
+  6:  { name: "Costing for person (PREL)",         sub: "PREL COST - split by percentage" },
+  7:  { name: "Costing for person (ASG)",          sub: "ASG COST - split by percentage" },
+  8:  { name: "Costing for person - element (PRET)", sub: "PRET COST - split by percentage" },
+  9:  { name: "Costing for person - element (AET)",  sub: "AET COST - split by percentage" },
+  10: { name: "Costing for element entry",         sub: "EE COST - always 100%" },
+  11: { name: "Fast formula override",             sub: "FF COST - always 100%" },
+  12: { name: "Element eligibility override",      sub: "EL OVERRIDE - split by percentage" },
+  13: { name: "Payroll default",                   sub: "PAY DFLT - remainder when split < 100%" },
+  14: { name: "Department default",                sub: "ORG DFLT - remainder when split < 100%" },
+  15: { name: "Payroll suspense",                  sub: "PAY SUSP - fills segments still null" },
+  16: { name: "Department suspense",               sub: "ORG SUSP - fills segments still null" },
 };
 
 export interface RankMask {

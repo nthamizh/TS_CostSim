@@ -22,11 +22,12 @@ async function loadDataSources(enterpriseId: string | null) {
   const scope = (col: any) =>
     enterpriseId ? or(isNull(col), eq(col, enterpriseId)) : isNull(col);
 
-  const [elig, dept, person, personElem, pos, job, payroll, ff, iacPpg, iacSeg] = await Promise.all([
+  const [elig, dept, person, personElem, elemEntry, pos, job, payroll, ff, iacPpg, iacSeg] = await Promise.all([
     db.select().from(T.eligibilityCosting).where(scope(T.eligibilityCosting.enterpriseId)),
     db.select().from(T.departmentCosting).where(scope(T.departmentCosting.enterpriseId)),
     db.select().from(T.personCosting).where(scope(T.personCosting.enterpriseId)),
     db.select().from(T.personElementCosting).where(scope(T.personElementCosting.enterpriseId)),
+    db.select().from(T.elementEntryCosting).where(scope(T.elementEntryCosting.enterpriseId)),
     db.select().from(T.positionCosting).where(scope(T.positionCosting.enterpriseId)),
     db.select().from(T.jobCosting).where(scope(T.jobCosting.enterpriseId)),
     db.select().from(T.payrollCosting).where(scope(T.payrollCosting.enterpriseId)),
@@ -54,6 +55,7 @@ async function loadDataSources(enterpriseId: string | null) {
       personAgency: r.personAgency, personType: r.personType,
       element: r.element, department: r.department,
     })),
+    elementEntry:  elemEntry.map(toSegs),
     position:      pos.map(toSegs),
     job:           job.map(toSegs),
     payroll:       payroll.map(toSegs),
@@ -91,13 +93,17 @@ async function loadLov(enterpriseId: string | null) {
     .orderBy(T.listOfValues.sortOrder);
 }
 
-async function loadRankMasks(enterpriseId: string | null): Promise<RankMask[]> {
-  if (!enterpriseId) return [];
+async function loadLevelConfig(enterpriseId: string | null): Promise<{ masks: RankMask[]; active: number[] | undefined }> {
+  if (!enterpriseId) return { masks: [], active: undefined };
   const row = await db.query.enterpriseConfig.findFirst({
     where: eq(T.enterpriseConfig.enterpriseId, enterpriseId),
   });
-  if (!row?.rankSegMasks) return [];
-  try { return JSON.parse(row.rankSegMasks) as RankMask[]; } catch { return []; }
+  if (!row) return { masks: [], active: undefined };
+  let masks: RankMask[] = [];
+  let active: number[] | undefined;
+  try { masks = JSON.parse(row.rankSegMasks ?? "[]") as RankMask[]; } catch { /* keep [] */ }
+  try { active = JSON.parse(row.activeRanks) as number[]; } catch { /* keep undefined */ }
+  return { masks, active };
 }
 
 // ---------------------------------------------------------------------------
@@ -113,11 +119,11 @@ costingRouter.post("/simulate",
       return;
     }
     const eid  = req.serviceToken.enterpriseId;
-    const [data, rankMasks] = await Promise.all([
+    const [data, cfg] = await Promise.all([
       loadDataSources(eid),
-      loadRankMasks(eid),
+      loadLevelConfig(eid),
     ]);
-    const result = runSimulation(parsed.data, data as any, rankMasks);
+    const result = runSimulation(parsed.data, data as any, cfg.masks, cfg.active);
     res.json({ success: true, data: result });
   })
 );
@@ -280,6 +286,7 @@ const TABLE_MAP: Record<string, any> = {
   iac_ppg:            T.iacPpgOverride,
   iac_seg:            T.iacSegOverride,
   valid_combinations: T.validCombinations,
+  element_entry:      T.elementEntryCosting,
   list_of_values:     T.listOfValues,
 };
 

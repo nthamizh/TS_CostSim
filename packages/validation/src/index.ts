@@ -3,17 +3,20 @@ import { z } from "zod";
 export const simulationInputSchema = z.object({
   elementName:        z.string().min(1),
   assignmentNumber:   z.string().nullable().default(null),
-  legalEntity:        z.string().min(1),
-  department:         z.string().default(""),
-  agency:             z.string().default(""),
-  peopleGroup1:       z.string().min(1),
-  peopleGroup2:       z.string().min(1),
+  // The page no longer has header inputs for these — they are optional level inputs.
+  legalEntity:        z.string().default(""),
+  department:         z.string().nullable().default(null),
+  agency:             z.string().nullable().default(null),
+  peopleGroup1:       z.string().default(""),
+  peopleGroup2:       z.string().default(""),
   peopleGroup3:       z.string().nullable().default(null),
   contractClause:     z.string().nullable().default(null),
   payrollDefinition:  z.string().nullable().default(null),
   jobCode:            z.string().nullable().default(null),
   positionCode:       z.string().nullable().default(null),
   effectiveDate:      z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  excludedLevels:     z.array(z.number().int().min(1).max(16)).default([]),
+  userOverrides:      z.record(z.string().regex(/^\d{1,2}$/), z.array(z.string().nullable()).length(9)).default({}),
 });
 
 export const etlWebhookSchema = z.object({
@@ -26,7 +29,7 @@ export const etlWebhookSchema = z.object({
     targetTable: z.enum([
       "eligibility","department","person","person_element",
       "position","job","payroll","fast_formula",
-      "iac_ppg","iac_seg","valid_combinations","list_of_values",
+      "element_entry","iac_ppg","iac_seg","valid_combinations","list_of_values",
     ]),
     // enterpriseId optional — resolved from token if absent
     enterpriseId: z.string().uuid().optional(),

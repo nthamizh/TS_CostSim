@@ -48,8 +48,8 @@ export interface SimulationInput {
   elementName: string;
   assignmentNumber: string | null;
   legalEntity: string;
-  department: string;
-  agency: string;
+  department: string | null;
+  agency: string | null;
   peopleGroup1: string;
   peopleGroup2: string;
   peopleGroup3: string | null;
@@ -58,6 +58,10 @@ export interface SimulationInput {
   jobCode: string | null;
   positionCode: string | null;
   effectiveDate: string; // ISO date
+  /** Levels (1–16) the user un-ticked "Consider" on. */
+  excludedLevels?: number[];
+  /** "User value" overrides: level -> 9 segment values. JSON object keys are strings. */
+  userOverrides?: Record<string, (string | null)[]>;
 }
 
 export interface HierarchyLevel {
@@ -71,10 +75,25 @@ export interface HierarchyLevel {
 }
 
 export interface CostLine {
-  percentage:  number;
-  sourceLabel: string;
-  segments:    SegmentValues;
-  isDefault:   boolean;
+  level:          number;       // 1–16 per the hierarchy spec
+  levelLabel:     string;       // e.g. "Lvl 3 ORG COST"
+  percentage:     number;
+  sourceLabel:    string;
+  segments:       SegmentValues;
+  isDefault:      boolean;
+  costingType:    string;       // PAY | ORG | EL | FF | EE | JOB | POS | PREL | ASG | PRET | AET
+  costingSubType: string;       // COST | BAL | OVERRIDE | SUSP | DFLT
+  segLevels:      (number | null)[];  // level that supplied each segment
+  segSources:     (string | null)[];  // e.g. "ASG COST", "EL BAL"
+}
+
+export interface LevelResult {
+  level:      number;
+  matched:    boolean;
+  considered: boolean;
+  userValue:  boolean;
+  lines:      CostLine[];
+  usedMask:   boolean[][];
 }
 
 export interface JournalLine {
@@ -87,6 +106,9 @@ export interface JournalLine {
 export interface SimulationResult {
   eligible: boolean;
   eligibilityRecord: string | null;
+  isRetro: boolean;
+  winnerLevel: number | null;
+  levelResults: LevelResult[];
   cost: JournalLine | null;
   offset: JournalLine | null;
   traceMessages: string[];

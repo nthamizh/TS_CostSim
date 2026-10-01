@@ -1,0 +1,3 @@
+ldg,assignmentNumber,element,personType,department,personAgency,legalEntity,peopleGroup,costingType,costingSubType,subTypeSequence,percentage,parStartDate,parEndDate,seg1,seg2,seg3,seg4,seg5,seg6,seg7,seg8,seg9,createdAt,createdBy,updatedAt,updatedBy
+,E00080612,UNA_ER_RES_SEC,Staff,33055 - Ethiopia-WFP,UNW,UN Women,G-Staff-GS,EE,COST,1,100,2025-01-01,4712-12-31,UNDP,ETH,12000,33055,,10038,37,0,0,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl
+,E002588,UNA_ER_RES_SEC,Staff,48650 - Bolivia-UN Sister Agency,DCP,United Nations Development Programme,G-Staff-GS,EE,COST,1,100,2025-01-01,4712-12-31,UNDP,BOL,12000,48601,,10015,1863,0,0,2026-01-15T09:00:00Z,system.etl,2026-01-15T09:00:00Z,system.etl

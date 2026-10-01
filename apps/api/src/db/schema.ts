@@ -63,6 +63,7 @@ export const eligibilityCosting = pgTable(
     // costingSubType replaces the old accountType field.
     // COST = Cost Account (Dr), BAL = Offset/Balance Account (Cr), OVERRIDE = override.
     costingSubType:       costingSubTypeEnum("costing_sub_type").notNull(),
+    costableType:         text("costable_type"),  // Mirrors costingType value. Fixed: EL
     costingType:          costingTypeEnum("costing_type"),
     subTypeSequence:      text("sub_type_sequence"),
     percentage:           real("percentage"),
@@ -89,10 +90,11 @@ export const departmentCosting = pgTable(
   {
     id:               uuid("id").primaryKey().defaultRandom(),
     enterpriseId:     uuid("enterprise_id"),
-    ldg:              text("ldg"),                     // Legislative Data Group
+    ldg:              text("ldg"),
     deptName:         text("dept_name").notNull(),
-    costingType:      text("costing_type"),            // Costed / Fixed / Distributed
-    subTypeSequence:  text("sub_type_sequence"),       // Sub-type sequence number
+    costingType:      text("costing_type"),    // Fixed: ORG
+    costingSubType:   text("costing_sub_type"),   // COST | SUSP | DFLT
+    subTypeSequence:  text("sub_type_sequence"),
     effStartDate:     text("eff_start_date").notNull(),
     effEndDate:       text("eff_end_date").notNull(),
     percentage:       real("percentage").notNull().default(100),
@@ -123,7 +125,8 @@ export const personCosting = pgTable(
     personAgency:     text("person_agency"),
     legalEntity:      text("legal_entity").notNull(),
     peopleGroup:      text("people_group"),
-    costingType:      text("costing_type"),
+    costingType:      text("costing_type"),    // PREL | ASG | TERM
+    costingSubType:   text("costing_sub_type"),   // COST
     subTypeSequence:  text("sub_type_sequence"),
     percentage:       real("percentage").notNull().default(100),
     parStartDate:     text("par_start_date").notNull(),
@@ -154,7 +157,8 @@ export const personElementCosting = pgTable(
     personAgency:     text("person_agency"),
     legalEntity:      text("legal_entity").notNull(),
     peopleGroup:      text("people_group"),
-    costingType:      text("costing_type"),
+    costingType:      text("costing_type"),    // PRET | AET | TET
+    costingSubType:   text("costing_sub_type"),   // COST
     subTypeSequence:  text("sub_type_sequence"),
     percentage:       real("percentage").notNull().default(100),
     parStartDate:     text("par_start_date").notNull(),
@@ -179,6 +183,8 @@ export const positionCosting = pgTable(
     ldg:             text("ldg"),
     positionCode:    text("position_code").notNull(),
     positionName:    text("position_name").notNull(),
+    costingType:     text("costing_type"),    // Fixed: POS
+    costingSubType:  text("costing_sub_type"),   // COST
     subTypeSequence: text("sub_type_sequence"),
     effStartDate:    text("eff_start_date").notNull(),
     effEndDate:      text("eff_end_date").notNull(),
@@ -200,6 +206,8 @@ export const jobCosting = pgTable(
     ldg:             text("ldg"),
     jobCode:         text("job_code").notNull(),
     jobName:         text("job_name").notNull(),
+    costingType:     text("costing_type"),    // Fixed: JOB
+    costingSubType:  text("costing_sub_type"),   // COST
     subTypeSequence: text("sub_type_sequence"),
     effStartDate:    text("eff_start_date").notNull(),
     effEndDate:      text("eff_end_date").notNull(),
@@ -220,7 +228,8 @@ export const payrollCosting = pgTable(
     enterpriseId:      uuid("enterprise_id"),
     ldg:               text("ldg"),
     payrollDefinition: text("payroll_definition").notNull(),
-    costingType:       text("costing_type"),
+    costingType:       text("costing_type"),   // Fixed: PAY
+    costingSubType:    text("costing_sub_type"),  // COST | SUSP | DFLT
     subTypeSequence:   text("sub_type_sequence"),
     effStartDate:      text("eff_start_date").notNull(),
     effEndDate:        text("eff_end_date").notNull(),
@@ -230,6 +239,40 @@ export const payrollCosting = pgTable(
     ...audit,
   },
   t => [index("costsim_payroll_ent_def_idx").on(t.enterpriseId, t.payrollDefinition)],
+);
+
+
+// ── Element Entry Costing ─────────────────────────────────────────────────────
+// Costing entered directly on the element entry (Oracle level EE COST).
+// costingType = EE, costingSubType = COST, always 100% — no percentage splits.
+export const elementEntryCosting = pgTable(
+  "costsim_element_entry",
+  {
+    id:               uuid("id").primaryKey().defaultRandom(),
+    enterpriseId:     uuid("enterprise_id"),
+    ldg:              text("ldg"),
+    assignmentNumber: text("assignment_number").notNull(),
+    element:          text("element").notNull(),
+    personType:       text("person_type"),
+    department:       text("department"),
+    personAgency:     text("person_agency"),
+    legalEntity:      text("legal_entity").notNull(),
+    peopleGroup:      text("people_group"),
+    costingType:      text("costing_type"),    // Fixed: EE
+    costingSubType:   text("costing_sub_type"),   // Fixed: COST
+    subTypeSequence:  text("sub_type_sequence"),
+    percentage:       real("percentage").notNull().default(100),
+    parStartDate:     text("par_start_date").notNull(),
+    parEndDate:       text("par_end_date").notNull(),
+    seg1: text("seg1"), seg2: text("seg2"), seg3: text("seg3"),
+    seg4: text("seg4"), seg5: text("seg5"), seg6: text("seg6"),
+    seg7: text("seg7"), seg8: text("seg8"), seg9: text("seg9"),
+    ...audit,
+  },
+  t => [
+    index("costsim_ee_ent_asg_elem_idx").on(t.enterpriseId, t.assignmentNumber, t.element),
+    index("costsim_ee_ent_idx").on(t.enterpriseId),
+  ],
 );
 
 // ── Fast Formula Override ─────────────────────────────────────────────────────
@@ -333,7 +376,7 @@ export const enterpriseConfig = pgTable(
       '["Segment 1","Segment 2","Segment 3","Segment 4","Segment 5","Segment 6","Segment 7","Segment 8","Segment 9"]'
     ),
     leSegmentNames: text("le_segment_names").notNull().default("{}"),
-    activeRanks:    text("active_ranks").notNull().default("[1,2,3,4,5,6,7,8,9]"),
+    activeRanks:    text("active_ranks").notNull().default("[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]"),
     rankSegMasks:   text("rank_seg_masks").notNull().default("[]"),
     updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy:      uuid("updated_by"),

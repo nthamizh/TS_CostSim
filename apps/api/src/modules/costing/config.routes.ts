@@ -21,7 +21,7 @@ const DEFAULT_SEGMENT_NAMES = [
   "Segment 1","Segment 2","Segment 3","Segment 4","Segment 5",
   "Segment 6","Segment 7","Segment 8","Segment 9",
 ];
-const DEFAULT_ACTIVE_RANKS   = [1,2,3,4,5,6,7,8,9];
+const DEFAULT_ACTIVE_RANKS   = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16];
 const DEFAULT_RANK_SEG_MASKS: { rank: number; excludedSegs: number[] }[] = [];
 
 function parseConfig(row: typeof enterpriseConfig.$inferSelect | undefined) {
@@ -49,9 +49,9 @@ const configBodySchema = z.object({
     z.string(),                             // LE name
     z.array(z.string().min(1).max(60)).length(9) // 9 segment names for that LE
   ),
-  activeRanks: z.array(z.number().int().min(1).max(9)).min(1).max(9),
+  activeRanks: z.array(z.number().int().min(1).max(16)).min(1).max(16),
   rankSegMasks: z.array(z.object({
-    rank:         z.number().int().min(1).max(9),
+    rank:         z.number().int().min(1).max(16),
     excludedSegs: z.array(z.number().int().min(0).max(8)),
   })).default([]),
 });
