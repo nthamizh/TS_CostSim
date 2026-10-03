@@ -83,14 +83,18 @@ const BADGE: Record<string, string> = {
 
 // ── Segment grid pieces ───────────────────────────────────────────────────────
 
-const SegHdr = ({ segs }: { segs: string[] }) => (
-  <div className="grid grid-cols-9 border-b border-gray-100 bg-gray-50">
-    {segs.map((s, i) => (
-      <div key={i} className="text-center py-1 px-1 border-r border-gray-100 last:border-r-0">
-        <div className="text-[9px] text-gray-400 uppercase tracking-wide truncate">{s}</div>
-        <div className="text-[9px] text-gray-300">S{i + 1}</div>
-      </div>
-    ))}
+/** `pad` adds a spacer the width of the % chip so headers line up with split rows. */
+const SegHdr = ({ segs, pad = false }: { segs: string[]; pad?: boolean }) => (
+  <div className="flex border-b border-gray-100 bg-gray-50">
+    {pad && <div className="w-11 flex-shrink-0 border-r border-gray-100" />}
+    <div className="grid grid-cols-9 flex-1">
+      {segs.map((s, i) => (
+        <div key={i} className="text-center py-1 px-1 border-r border-gray-100 last:border-r-0">
+          <div className="text-[9px] text-gray-400 uppercase tracking-wide truncate">{s}</div>
+          <div className="text-[9px] text-gray-300">S{i + 1}</div>
+        </div>
+      ))}
+    </div>
   </div>
 );
 
@@ -146,6 +150,9 @@ function LevelCard({
   const [open, setOpen] = useState(false);
   const isOpen = forceExpanded || open || isWinner || lr.userValue;
   const noMatch = !lr.matched && !lr.userValue;
+  const pctOf = (cl: CostLine) =>
+    lr.lines.length > 1 || (!def.alwaysFull && cl.percentage !== 100) ? cl.percentage : undefined;
+  const showPct = !lr.userValue && lr.lines.some(cl => pctOf(cl) !== undefined);
 
   return (
     <div className={`rounded-xl overflow-hidden ${isWinner ? "border-[1.5px] border-green-300" : "border border-gray-200"} ${
@@ -181,15 +188,13 @@ function LevelCard({
 
       {isOpen && (
         <div className="bg-white">
-          <SegHdr segs={segs} />
+          <SegHdr segs={segs} pad={showPct} />
           {lr.userValue ? (
             <SegRow cells={userSegs} editable onEdit={onUserSeg} onCommit={onCommit} />
           ) : lr.lines.length === 0 ? (
             <div className="py-2 text-center text-[11px] text-gray-300 font-mono">· · · · · · · · ·</div>
           ) : lr.lines.map((cl, k) => (
-            <SegRow key={k} cells={cl.segments}
-              pct={lr.lines.length > 1 || (!def.alwaysFull && cl.percentage !== 100) ? cl.percentage : undefined}
-              used={lr.usedMask[k]} />
+            <SegRow key={k} cells={cl.segments} pct={pctOf(cl)} used={lr.usedMask[k]} />
           ))}
         </div>
       )}
@@ -199,58 +204,29 @@ function LevelCard({
 
 // ── Final account + trace ─────────────────────────────────────────────────────
 
-function FinalAccountCard({ label, badge, badgeCls, lines, segs }: {
-  label: string; badge: string; badgeCls: string; lines: CostLine[]; segs: string[];
+/** Where a segment came from: "Lvl 7" for a hierarchy level, "EL BAL" for a balance override. */
+const levelTag = (cl: CostLine, i: number): string | null =>
+  cl.segSources[i] === "EL BAL" ? "EL BAL" : cl.segLevels[i] == null ? null : `Lvl ${cl.segLevels[i]}`;
+
+/** Final account: every segment value with the level it came from, one row per split. */
+function FinalCard({ title, badge, lines, segs }: {
+  title: string; badge: "Dr" | "Cr"; lines: CostLine[]; segs: string[];
 }) {
   const split = lines.length > 1;
   return (
-    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 bg-gray-50 border-b border-gray-100">
-        <span className="text-xs font-medium text-gray-700">{label}</span>
-        <span className={`text-[10px] font-semibold rounded px-2 py-0.5 ${BADGE[badgeCls] ?? ""}`}>{badge}</span>
-        {split && <span className="text-[10px] text-gray-400">{lines.length} split lines</span>}
+    <div className="rounded-xl overflow-hidden border-2 border-gray-900">
+      <div className="bg-gray-900 text-white px-4 py-2 flex items-center gap-3">
+        <span className="text-xs font-semibold uppercase tracking-wide">{title}</span>
+        <span className="text-[10px] font-semibold rounded px-1.5 py-0.5 bg-white/15">{badge}</span>
+        <span className="text-[10px] text-gray-400">segment value · level it came from</span>
+        {split && <span className="ml-auto text-[10px] text-gray-400">{lines.length} split lines</span>}
       </div>
-      <SegHdr segs={segs} />
-      {lines.map((cl, i) => <SegRow key={i} cells={cl.segments} pct={split ? cl.percentage : undefined} />)}
-    </div>
-  );
-}
-
-const srcLabel = (cl: CostLine, i: number) => {
-  const lv = cl.segLevels[i], s = cl.segSources[i];
-  return lv == null || !s ? null : (s === "EL BAL" ? "EL BAL" : `Level ${lv} - ${s}`);
-};
-
-function TraceSection({ lines, segs }: { lines: CostLine[]; segs: string[] }) {
-  if (!lines.length) return null;
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl p-4">
-      <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide mb-3">
-        Segment inheritance and traceability
-      </h3>
-      <div className="space-y-1">
-        {segs.map((name, i) => {
-          const vals = lines.map(l => l.segments[i]);
-          const srcs = lines.map(l => srcLabel(l, i));
-          const varies = new Set(vals).size > 1 || new Set(srcs).size > 1;
-          return (
-            <div key={i} className="grid grid-cols-[24px_140px_1fr] gap-2 items-start py-1 border-b border-gray-50 last:border-b-0 text-xs">
-              <span className="font-mono text-gray-400 text-right text-[10px] pt-0.5">{i + 1}</span>
-              <span className="text-gray-500 pt-0.5">{name}</span>
-              <div className="space-y-0.5">
-                {(varies ? lines : [lines[0]!]).map((l, k) => (
-                  <div key={k} className="flex items-center gap-2 flex-wrap">
-                    {varies && <span className="text-[10px] text-amber-600 w-9">{l.percentage}%</span>}
-                    <span className="font-mono font-medium text-gray-800">{l.segments[i] ?? <span className="text-gray-300">·</span>}</span>
-                    {srcLabel(l, i)
-                      ? <span className="text-[10px] rounded px-1.5 py-0.5 border bg-gray-50 text-gray-600 border-gray-200">{srcLabel(l, i)}</span>
-                      : <span className="text-[10px] text-red-500">unresolved</span>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          );
-        })}
+      <div className="bg-white">
+        <SegHdr segs={segs} pad={split} />
+        {lines.map((cl, i) => (
+          <SegRow key={i} cells={cl.segments} pct={split ? cl.percentage : undefined}
+            tag={cl.segments.map((_, si) => levelTag(cl, si))} />
+        ))}
       </div>
     </div>
   );
@@ -529,21 +505,17 @@ export function VisualizerPage() {
       )}
 
       {result?.eligible && result.cost && (<>
-        {/* 2. Final cost and balance, with splits */}
-        <div className="grid grid-cols-2 gap-4">
-          <FinalAccountCard label="Final cost account" badge="Dr" badgeCls="b-asg" lines={costLines} segs={SEGS} />
-          <FinalAccountCard label="Final balance account" badge="Cr" badgeCls="b-bal" lines={offsetLines} segs={SEGS} />
+        {/* 2. Final cost and balance accounts: value + level it came from, with splits */}
+        <div className="space-y-3">
+          <FinalCard title="Final cost account" badge="Dr" lines={costLines} segs={SEGS} />
+          <FinalCard title="Final balance account" badge="Cr" lines={offsetLines} segs={SEGS} />
         </div>
 
         {retroResult?.eligible && retroResult.cost && (
-          <div>
-            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Retro element: {retroElement}
-            </h2>
-            <div className="grid grid-cols-2 gap-4">
-              <FinalAccountCard label="Retro cost account" badge="Dr" badgeCls="b-asg" lines={retroResult.cost.lines} segs={SEGS} />
-              <FinalAccountCard label="Retro balance account" badge="Cr" badgeCls="b-bal" lines={retroResult.offset?.lines ?? []} segs={SEGS} />
-            </div>
+          <div className="space-y-3">
+            <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Retro element: {retroElement}</h2>
+            <FinalCard title="Retro cost account" badge="Dr" lines={retroResult.cost.lines} segs={SEGS} />
+            <FinalCard title="Retro balance account" badge="Cr" lines={retroResult.offset?.lines ?? []} segs={SEGS} />
           </div>
         )}
 
@@ -580,24 +552,6 @@ export function VisualizerPage() {
             })}
           </div>
         </div>
-
-        {/* 4. Final resolved: each segment with the level that supplied it */}
-        <div className="rounded-xl overflow-hidden border-2 border-gray-900">
-          <div className="bg-gray-900 text-white px-4 py-2 flex items-center gap-3">
-            <span className="text-xs font-semibold uppercase tracking-wide">Final cost account</span>
-            <span className="text-[10px] text-gray-400">segment value · level it came from</span>
-          </div>
-          <div className="bg-white">
-            <SegHdr segs={SEGS} />
-            {costLines.map((cl, i) => (
-              <SegRow key={i} cells={cl.segments} pct={costLines.length > 1 ? cl.percentage : undefined}
-                tag={cl.segLevels.map(l => (l == null ? null : `Lvl ${l}`))} />
-            ))}
-          </div>
-        </div>
-
-        {/* 5. Segment-dimension trace */}
-        <TraceSection lines={costLines} segs={SEGS} />
 
         <details className="bg-white border border-gray-200 rounded-xl">
           <summary className="px-4 py-3 text-sm font-medium text-gray-600 cursor-pointer select-none">Resolution log</summary>
