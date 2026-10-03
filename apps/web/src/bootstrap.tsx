@@ -2,10 +2,12 @@
  * CostSimulator Module Federation remote entry.
  * Platform imports this via `import("costsim/App")`.
  */
+import { useRef } from "react";
 import { Routes, Route, Navigate } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import "@nthamizh/ui/styles.css";
 import { initApi } from "./lib/api";
+import { useFillHostWidth } from "./lib/fillHost";
 import { usePermStore } from "./stores/permStore";
 import type { CostSimPermissions } from "@costsim/types";
 import { VisualizerPage } from "./pages/VisualizerPage";
@@ -32,6 +34,9 @@ export default function CostSimApp({
   // survives token rotation — same pattern as ConfigIQ's api.ts)
   initApi(apiBaseUrl, getAccessToken);
 
+  const rootRef = useRef<HTMLDivElement>(null);
+  useFillHostWidth(rootRef);
+
   const setPermissions = usePermStore(s => s.setPermissions);
   if (permissions) setPermissions(permissions, isPlatformAdmin);
 
@@ -42,6 +47,7 @@ export default function CostSimApp({
 
   return (
     <QueryClientProvider client={queryClient}>
+      <div ref={rootRef} className="min-w-0">
       <Routes>
         <Route index element={canSimulate ? <VisualizerPage /> : <Navigate to="interagency" />} />
         {canSimulate && (
@@ -55,6 +61,7 @@ export default function CostSimApp({
         {canSetup       && <Route path="setup"       element={<SetupPage />} />}
         <Route path="*" element={<Navigate to="" />} />
       </Routes>
+      </div>
     </QueryClientProvider>
   );
 }

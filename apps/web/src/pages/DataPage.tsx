@@ -88,7 +88,6 @@ const BOOL_COLS = new Set(["isActive"]);
 const ENUM_OPTS: Record<string, string[]> = {
   // eligibility costingSubType
   costingSubType: ["COST","BAL","OVERRIDE"],
-  costingType:    ["Any","Costed","Fixed","Distributed"],
   accountType:    ["Cost","Offset","Both"],  // IAC tables
 };
 
@@ -101,7 +100,7 @@ const TABLE_ENUM_OPTS: Record<string, Record<string, string[]>> = {
   person:         { costingSubType: ["COST"],               costingType: ["PREL","ASG","TERM"] },
   person_element: { costingSubType: ["COST"],               costingType: ["PRET","AET","TET"] },
   element_entry:  { costingSubType: ["COST"],               costingType: ["EE"] },
-  eligibility:    { costingSubType: ["COST","BAL","OVERRIDE"], costableType: ["EL"] },
+  eligibility:    { costingSubType: ["COST","BAL","OVERRIDE"], costingType: ["EL"], costableType: ["Costed","Fixed","Distributed"] },
 };
 
 function colLabel(key: string): string {
@@ -377,10 +376,17 @@ export function DataPage() {
     | null
   >(null);
 
-  const { data, isLoading, isFetching } = useQuery({
+  // Data is loaded on demand and only refreshed when the user asks (Reload) or after a
+  // save/delete invalidates it. Without these options React Query refetches every time the
+  // browser tab regains focus.
+  const { data, isLoading, isFetching, refetch } = useQuery({
     queryKey: ["costsim-data", active],
     queryFn:  () => api.getData(active) as Promise<Record<string, unknown>[]>,
     enabled:  submitted,
+    staleTime: Infinity,
+    refetchOnWindowFocus: false,
+    refetchOnReconnect:   false,
+    refetchOnMount:       false,
   });
 
   const switchTable = (key: string) => {
@@ -433,7 +439,7 @@ export function DataPage() {
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-2">
         <button
-          onClick={() => setSubmitted(true)}
+          onClick={() => (submitted ? void refetch() : setSubmitted(true))}
           disabled={isFetching}
           className="px-4 py-1.5 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700 disabled:opacity-50"
         >
@@ -488,7 +494,7 @@ export function DataPage() {
         ) : isLoading || isFetching ? (
           <div className="p-8 text-center text-gray-400 text-sm animate-pulse">Loading…</div>
         ) : (
-          <div className="overflow-auto max-h-[60vh]">
+          <div className="overflow-auto max-h-[max(20rem,calc(100vh_-_22rem))]">
             <table className="min-w-full text-xs">
               <thead className="bg-gray-50 sticky top-0 z-10">
                 <tr>

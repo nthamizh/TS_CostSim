@@ -73,7 +73,7 @@ export interface EligRow extends Row9 {
   id: string;
   eligibility: string; elementName: string;
   costingSubType: string;   // "COST" | "BAL" | "OVERRIDE"
-  costableType: string|null; // "EL"
+  costableType: string|null; // "Costed" | "Fixed" | "Distributed"
   ldg: string|null; subTypeSequence: string|null; percentage: number|null;
   eligibilityStartDate: string; eligibilityEndDate: string;
   legalEmployer: string|null; peopleGroup1: string|null;
@@ -212,6 +212,7 @@ export interface SimResult {
   eligibilityRecord: string|null;
   isRetro:           boolean;
   winnerLevel:       number|null;
+  costableType:      string|null;   // from the EL COST record
   cost:              JournalLine|null;
   offset:            JournalLine|null;
   levelResults:      LevelResult[];
@@ -327,11 +328,18 @@ export function runSimulation(
   const elCostRows = matchEligRows(data.eligibility, input.elementName, "COST", le, pg1, pg2, pg3, date);
   if (elCostRows.length === 0) {
     trace.push(`✖ Eligibility (EL COST): no record for "${input.elementName}" matches LE / PG1 / PG2 / PG3`);
-    return { eligible:false, eligibilityRecord:null, isRetro, winnerLevel:null,
+    return { eligible:false, eligibilityRecord:null, isRetro, winnerLevel:null, costableType:null,
              cost:null, offset:null, levelResults:[], traceMessages:trace };
   }
   const elCost = elCostRows[0]!;
   trace.push(`✔ Eligibility (EL COST Lvl 2): ${elCost.eligibility}`);
+  // The 16-level hierarchy is defined for Costed elements. Anything else (and legacy
+  // placeholder values) is resolved the same way, but flagged so nobody trusts it blindly.
+  const costableType = elCost.costableType === "Fixed" || elCost.costableType === "Distributed"
+    ? elCost.costableType : "Costed";
+  if (costableType !== "Costed") {
+    trace.push(`⚠ Costable type is "${costableType}": the 16-level rules are defined for Costed elements only`);
+  }
 
   // ── Collect raw rows per level ──────────────────────────────────────────────
   const raw: Record<number, CostLine[]> = {};
@@ -541,7 +549,7 @@ export function runSimulation(
   }));
 
   return {
-    eligible: true, eligibilityRecord: elCost.eligibility, isRetro, winnerLevel,
+    eligible: true, eligibilityRecord: elCost.eligibility, isRetro, winnerLevel, costableType,
     cost:   { type: "Cost",   lines: costLines,   segments: costLines[0]!.segments,   levels: hier },
     offset: { type: "Offset", lines: offsetLines, segments: offsetLines[0]!.segments, levels: hier },
     levelResults, traceMessages: trace,

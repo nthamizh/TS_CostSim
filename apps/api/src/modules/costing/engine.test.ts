@@ -230,3 +230,14 @@ test("result carries all 16 levels with a used-mask for the UI", () => {
   assert.equal(l7.usedMask[0]![0], true);
   assert.equal(r.levelResults.find(l => l.level === 2)!.usedMask[0]![0], false);
 });
+
+test("costable type comes from the eligibility record; non-Costed is flagged, legacy values count as Costed", () => {
+  const run = (ct: string|null) => runSimulation(input(), data({ eligibility: [elig("COST", ["E"], { costableType: ct })] }));
+  assert.equal(run("Costed").costableType, "Costed");
+  assert.equal(run("EL").costableType, "Costed");       // legacy placeholder
+  assert.equal(run(null).costableType, "Costed");
+  const fixed = run("Fixed");
+  assert.equal(fixed.costableType, "Fixed");
+  assert.ok(fixed.traceMessages.some(m => m.includes('Costable type is "Fixed"')));
+  assert.ok(!run("Costed").traceMessages.some(m => m.includes("Costable type")));
+});

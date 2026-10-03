@@ -108,6 +108,7 @@ export interface SimulationResult {
   eligibilityRecord: string | null;
   isRetro: boolean;
   winnerLevel: number | null;
+  costableType: string | null;   // Costed | Fixed | Distributed (from the eligibility record)
   levelResults: LevelResult[];
   cost: JournalLine | null;
   offset: JournalLine | null;

@@ -50,7 +50,6 @@ export const validCombinations = pgTable(
 // costingSubType replaces the old accountType enum.
 // COST = Cost Account (Dr), BAL = Offset/Balance Account (Cr), OVERRIDE = override entry.
 export const costingSubTypeEnum = pgEnum("costsim_costing_sub_type", ["COST","BAL","OVERRIDE"]);
-export const costingTypeEnum  = pgEnum("costsim_costing_type", ["Any","Costed","Fixed","Distributed"]);
 
 export const eligibilityCosting = pgTable(
   "costsim_eligibility",
@@ -63,8 +62,8 @@ export const eligibilityCosting = pgTable(
     // costingSubType replaces the old accountType field.
     // COST = Cost Account (Dr), BAL = Offset/Balance Account (Cr), OVERRIDE = override.
     costingSubType:       costingSubTypeEnum("costing_sub_type").notNull(),
-    costableType:         text("costable_type"),  // Mirrors costingType value. Fixed: EL
-    costingType:          costingTypeEnum("costing_type"),
+    costableType:         text("costable_type"),  // Costed | Fixed | Distributed
+    costingType:          text("costing_type"),   // Fixed: EL
     subTypeSequence:      text("sub_type_sequence"),
     percentage:           real("percentage"),
     eligibilityStartDate: text("eligibility_start_date").notNull(),
@@ -378,6 +377,8 @@ export const enterpriseConfig = pgTable(
     leSegmentNames: text("le_segment_names").notNull().default("{}"),
     activeRanks:    text("active_ranks").notNull().default("[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]"),
     rankSegMasks:   text("rank_seg_masks").notNull().default("[]"),
+    // 1 = legacy 9-rank numbering, 2 = 16-level numbering (set by migration 0008).
+    hierarchyVersion: integer("hierarchy_version").notNull().default(2),
     updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     updatedBy:      uuid("updated_by"),
   },
