@@ -241,3 +241,64 @@ test("costable type comes from the eligibility record; non-Costed is flagged, le
   assert.ok(fixed.traceMessages.some(m => m.includes('Costable type is "Fixed"')));
   assert.ok(!run("Costed").traceMessages.some(m => m.includes("Costable type")));
 });
+
+// ── eligibility diagnostics ────────────────────────────────────────────────
+test("not eligible: element with no eligibility records at all", () => {
+  const r = runSimulation(input({ elementName: "NOPE" }), data({ eligibility: [elig("COST", ["E"])] }));
+  assert.equal(r.eligible, false);
+  assert.equal(r.diagnostics!.reason, "no-element");
+  assert.deepEqual(r.diagnostics!.candidates, []);
+});
+
+test("not eligible: only BAL / OVERRIDE records exist, no COST", () => {
+  const r = runSimulation(input(), data({ eligibility: [elig("BAL", ["B"])] }));
+  assert.equal(r.diagnostics!.reason, "no-cost-record");
+  assert.match(r.diagnostics!.message, /BAL/);
+});
+
+test("not eligible: COST records exist but not on the effective date", () => {
+  const r = runSimulation(input({ effectiveDate: "2025-06-01" }),
+    data({ eligibility: [elig("COST", ["E"], { eligibilityStartDate: "2026-04-01" })] }));
+  assert.equal(r.diagnostics!.reason, "out-of-date");
+  assert.match(r.diagnostics!.message, /2026-04-01/);
+  assert.equal(r.diagnostics!.candidates.length, 1);
+});
+
+test("not eligible: records need a specific people group; candidates list them de-duplicated", () => {
+  const rows = [
+    elig("COST", ["E"], { peopleGroup1: "PG-A", peopleGroup2: "UNDP" }),
+    elig("COST", ["E"], { peopleGroup1: "PG-A", peopleGroup2: "UNDP" }),   // duplicate combination
+    elig("COST", ["E"], { peopleGroup1: "PG-B" }),
+    elig("COST", ["E"], { peopleGroup1: "PG-Z", eligibilityStartDate: "2030-01-01" }), // not in date
+  ];
+  const r = runSimulation(input({ peopleGroup1: "" }), data({ eligibility: rows }));
+  assert.equal(r.eligible, false);
+  assert.equal(r.diagnostics!.reason, "filters");
+  assert.deepEqual(r.diagnostics!.candidates.map(c => c.peopleGroup1), ["PG-A", "PG-B"]);
+  // choosing a candidate's values makes the same element eligible
+  const ok = runSimulation(input({ peopleGroup1: "PG-A", peopleGroup2: "UNDP" }), data({ eligibility: rows }));
+  assert.equal(ok.eligible, true);
+  assert.equal(ok.diagnostics, null);
+});
+
+// ── eligibility grid ───────────────────────────────────────────────────────
+import { computeEligibilityGrid } from "./engine.js";
+const combo = (le: string, pg1: string) => ({ id: pg1, legalEmployer: le, peopleGroup1: pg1, peopleGroup2: "UNDP", peopleGroup3: null });
+const gridDate = new Date("2025-06-01T00:00:00");
+
+test("grid rows carry the real costing sub-type for COST, BAL and OVERRIDE", () => {
+  const rows = [
+    elig("COST", ["C"], { peopleGroup1: "PG-A" }),
+    elig("BAL", ["B"], { peopleGroup1: "PG-A" }),
+    elig("OVERRIDE", ["O1"], { peopleGroup1: "PG-A", percentage: 60, subTypeSequence: "1" }),
+    elig("OVERRIDE", ["O2"], { peopleGroup1: "PG-A", percentage: 40, subTypeSequence: "2" }),
+  ] as never[];
+  const combos = [combo("LE", "PG-A"), combo("LE", "PG-B")] as never[];
+  const sub = (t: string) => computeEligibilityGrid(combos, rows, "E1", t, gridDate);
+  assert.deepEqual(sub("COST").map(r => [r.costingSubType, r.peopleGroup1, r.eligible]), [["COST","PG-A",true], ["COST","PG-B",false]]);
+  assert.deepEqual(sub("BAL").map(r => [r.costingSubType, r.eligible]), [["BAL",true], ["BAL",false]]);
+  // OVERRIDE: one row per split record, only for combinations that have one
+  assert.deepEqual(sub("OVERRIDE").map(r => [r.costingSubType, r.peopleGroup1, r.percentage, r.segments[0]]),
+    [["OVERRIDE","PG-A",60,"O1"], ["OVERRIDE","PG-A",40,"O2"]]);
+  assert.deepEqual(sub("COST").map(r => r.percentage), [null, null]);
+});

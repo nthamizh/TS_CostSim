@@ -103,12 +103,26 @@ export interface JournalLine {
   levels: HierarchyLevel[];
 }
 
+export interface EligibilityCandidate {
+  eligibility: string;
+  legalEmployer: string | null; peopleGroup1: string | null;
+  peopleGroup2: string | null;  peopleGroup3: string | null;
+  startDate: string; endDate: string;
+}
+export interface EligibilityDiagnostics {
+  reason: "no-element" | "no-cost-record" | "out-of-date" | "filters";
+  message: string;
+  candidates: EligibilityCandidate[];
+  totalCandidates: number;
+}
+
 export interface SimulationResult {
   eligible: boolean;
   eligibilityRecord: string | null;
   isRetro: boolean;
   winnerLevel: number | null;
   costableType: string | null;   // Costed | Fixed | Distributed (from the eligibility record)
+  diagnostics: EligibilityDiagnostics | null;   // set only when not eligible
   levelResults: LevelResult[];
   cost: JournalLine | null;
   offset: JournalLine | null;

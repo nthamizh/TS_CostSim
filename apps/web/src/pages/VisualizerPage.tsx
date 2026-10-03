@@ -5,7 +5,7 @@ import { useDropdowns } from "../hooks/useDataAll";
 import { useSegmentNames, useActiveRanks } from "../hooks/useConfig";
 import { api } from "../lib/api";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
-import type { SimResult, CostLine, LevelResult } from "@costsim/types";
+import type { SimResult, CostLine, LevelResult, EligibilityCandidate } from "@costsim/types";
 
 // ── Date helpers (timezone-safe: pure UTC / string maths, never local midnight) ──
 
@@ -344,6 +344,17 @@ export function VisualizerPage() {
     if (result) runWith(next, levels);
   };
 
+  /** Set several level inputs in one go (e.g. a whole LE / people group combination) and re-run. */
+  const applyInputs = (patch: Partial<Inputs>) => {
+    const next = { ...inputs, ...patch };
+    setInputs(next);
+    runWith(next, levels);
+  };
+  const pickCandidate = (k: EligibilityCandidate) => applyInputs({
+    legalEntity: k.legalEmployer ?? "", pg1: k.peopleGroup1 ?? "",
+    pg2: k.peopleGroup2 ?? "", pg3: k.peopleGroup3 ?? "",
+  });
+
   const lov = dd?.lov ?? {};
   const pgKey = (n: number) => Object.keys(lov).find(k => k.toLowerCase().includes(`people group ${n}`)) ?? `People Group ${n}`;
   const inputOptions = (k: InputKey): string[] => {
@@ -448,9 +459,67 @@ export function VisualizerPage() {
       </div>
 
       {result && !result.eligible && (
-        <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm">
-          <strong>Not eligible.</strong> {result.traceMessages[0]}
-          <div className="text-xs mt-1 text-red-600">Set Legal employer and people groups on the Eligibility level if the record is specific to them.</div>
+        <div className="bg-white border border-red-200 rounded-xl overflow-hidden">
+          <div className="bg-red-50 px-4 py-3 text-sm text-red-700">
+            <strong>Not eligible.</strong> {result.diagnostics?.message ?? result.traceMessages[0]}
+          </div>
+
+          {/* The Eligibility level inputs live here too, because there is no hierarchy to show yet. */}
+          {result.diagnostics?.reason === "filters" && (
+            <div className="px-4 py-3 border-b border-gray-100">
+              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">Eligibility filters</div>
+              <div className="flex flex-wrap items-end gap-3">
+                {(["legalEntity", "pg1", "pg2", "pg3"] as InputKey[]).map(k => (
+                  <div key={k} className="flex flex-col gap-1">
+                    <span className="text-[10px] text-gray-400">{INPUT_LABEL[k]}</span>
+                    <SearchableSelect value={inputs[k]} onChange={v => setInput(k, v)}
+                      options={inputOptions(k)} placeholder="Any" className={`${INP_SM} w-44`} />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {(result.diagnostics?.candidates.length ?? 0) > 0 && (
+            <div className="px-4 py-3">
+              <div className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider mb-2">
+                {result.diagnostics!.reason === "filters" ? "Combinations that would be eligible" : "Existing COST records"}
+                {result.diagnostics!.totalCandidates > result.diagnostics!.candidates.length &&
+                  ` (first ${result.diagnostics!.candidates.length} of ${result.diagnostics!.totalCandidates})`}
+              </div>
+              <div className="overflow-auto max-h-72 border border-gray-100 rounded-lg">
+                <table className="min-w-full text-xs">
+                  <thead className="bg-gray-50 sticky top-0">
+                    <tr className="text-[10px] uppercase tracking-wide text-gray-400">
+                      <th className="px-3 py-1.5 text-left">Legal employer</th>
+                      <th className="px-3 py-1.5 text-left">PG 1</th>
+                      <th className="px-3 py-1.5 text-left">PG 2</th>
+                      <th className="px-3 py-1.5 text-left">PG 3</th>
+                      <th className="px-3 py-1.5 text-left">Effective</th>
+                      {result.diagnostics!.reason === "filters" && <th className="px-3 py-1.5" />}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {result.diagnostics!.candidates.map((k, i) => (
+                      <tr key={i} className="hover:bg-gray-50">
+                        <td className="px-3 py-1.5">{k.legalEmployer ?? <span className="text-gray-300">any</span>}</td>
+                        <td className="px-3 py-1.5">{k.peopleGroup1 ?? <span className="text-gray-300">any</span>}</td>
+                        <td className="px-3 py-1.5">{k.peopleGroup2 ?? <span className="text-gray-300">any</span>}</td>
+                        <td className="px-3 py-1.5">{k.peopleGroup3 ?? <span className="text-gray-300">any</span>}</td>
+                        <td className="px-3 py-1.5 font-mono text-[11px] text-gray-500 whitespace-nowrap">{k.startDate} to {k.endDate}</td>
+                        {result.diagnostics!.reason === "filters" && (
+                          <td className="px-3 py-1.5 text-right">
+                            <button onClick={() => pickCandidate(k)}
+                              className="px-2 py-0.5 text-[11px] border border-indigo-200 text-indigo-700 rounded hover:bg-indigo-50">Use</button>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
       {result?.isRetro && (

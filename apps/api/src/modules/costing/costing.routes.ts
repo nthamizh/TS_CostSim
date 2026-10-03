@@ -148,15 +148,19 @@ costingRouter.get("/dropdowns",
 
 // ---------------------------------------------------------------------------
 // GET /v1/costing/eligibility?elem=&acctType=&date=
-// acctType: "COST" | "BAL" | "both" (default = both)
-// Returns an accountType field on every row so the client can display or
-// filter without a second request.
+// acctType: "COST" | "BAL" | "OVERRIDE" | "both" (default = all three).
+// Every row carries costingSubType so the client can display or filter without a
+// second request. OVERRIDE rows are only returned for combinations that have one.
 // ---------------------------------------------------------------------------
+const ELIG_SUBTYPES = ["COST", "BAL", "OVERRIDE"] as const;
 costingRouter.get("/eligibility",
   requirePermission("viewSimulate"),
   asyncHandler(async (req, res) => {
     const { elem, acctType = "both", date: dateStr } = req.query as Record<string, string>;
     if (!elem) { res.status(422).json({ success: false, error: "elem is required" }); return; }
+    if (acctType !== "both" && !(ELIG_SUBTYPES as readonly string[]).includes(acctType)) {
+      res.status(422).json({ success: false, error: `acctType must be one of ${ELIG_SUBTYPES.join(", ")} or both` }); return;
+    }
 
     const eid  = req.serviceToken.enterpriseId;
     const date = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
@@ -165,19 +169,10 @@ costingRouter.get("/eligibility",
       loadDataSources(eid),
       loadCombos(eid),
     ]);
-    const elig = dataSrc.eligibility;
-
-    if (acctType === "both") {
-      const cost   = computeEligibilityGrid(combos as any, elig as any, elem, "COST",   date)
-                       .map(r => ({ ...r, accountType: "COST" }));
-      const offset = computeEligibilityGrid(combos as any, elig as any, elem, "BAL", date)
-                       .map(r => ({ ...r, accountType: "BAL" }));
-      res.json({ success: true, data: [...cost, ...offset] });
-    } else {
-      const rows = computeEligibilityGrid(combos as any, elig as any, elem, acctType, date)
-                     .map(r => ({ ...r, costingSubType: acctType }));
-      res.json({ success: true, data: rows });
-    }
+    const wanted = acctType === "both" ? ELIG_SUBTYPES : [acctType];
+    const rows = wanted.flatMap(t =>
+      computeEligibilityGrid(combos as any, dataSrc.eligibility as any, elem, t, date));
+    res.json({ success: true, data: rows });
   })
 );
 

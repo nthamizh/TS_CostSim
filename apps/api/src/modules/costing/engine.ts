@@ -207,12 +207,27 @@ export interface JournalLine {
   levels: HierarchyLevel[];
 }
 
+export interface EligibilityCandidate {
+  eligibility: string;
+  legalEmployer: string|null; peopleGroup1: string|null;
+  peopleGroup2: string|null;  peopleGroup3: string|null;
+  startDate: string; endDate: string;
+}
+/** Why an element is not eligible, and which records would make it eligible. */
+export interface EligibilityDiagnostics {
+  reason: "no-element" | "no-cost-record" | "out-of-date" | "filters";
+  message: string;
+  candidates: EligibilityCandidate[];   // de-duplicated, capped
+  totalCandidates: number;
+}
+
 export interface SimResult {
   eligible:          boolean;
   eligibilityRecord: string|null;
   isRetro:           boolean;
   winnerLevel:       number|null;
   costableType:      string|null;   // from the EL COST record
+  diagnostics:       EligibilityDiagnostics|null;   // set only when not eligible
   cost:              JournalLine|null;
   offset:            JournalLine|null;
   levelResults:      LevelResult[];
@@ -301,6 +316,45 @@ function mkLine(
 
 const EPS = 0.0001;
 
+const CANDIDATE_CAP = 50;
+
+function diagnoseEligibility(rows: EligRow[], elem: string, date: Date, dateLabel: string): EligibilityDiagnostics {
+  const toCand = (r: EligRow): EligibilityCandidate => ({
+    eligibility: r.eligibility, legalEmployer: r.legalEmployer, peopleGroup1: r.peopleGroup1,
+    peopleGroup2: r.peopleGroup2, peopleGroup3: r.peopleGroup3,
+    startDate: r.eligibilityStartDate, endDate: r.eligibilityEndDate,
+  });
+  const dedupe = (rs: EligRow[]) => {
+    const seen = new Set<string>(), out: EligibilityCandidate[] = [];
+    for (const r of rs) {
+      const k = [r.legalEmployer, r.peopleGroup1, r.peopleGroup2, r.peopleGroup3, r.eligibilityStartDate].join("|");
+      if (!seen.has(k)) { seen.add(k); out.push(toCand(r)); }
+    }
+    return out;
+  };
+  const forElem = rows.filter(r => r.elementName === elem);
+  if (forElem.length === 0) {
+    return { reason: "no-element", candidates: [], totalCandidates: 0,
+             message: `No eligibility records exist for element "${elem}".` };
+  }
+  const cost = forElem.filter(r => r.costingSubType === "COST");
+  if (cost.length === 0) {
+    const found = [...new Set(forElem.map(r => r.costingSubType))].join(", ");
+    return { reason: "no-cost-record", candidates: [], totalCandidates: 0,
+             message: `"${elem}" has eligibility records (${found}) but none with sub-type COST, which is required.` };
+  }
+  const inDate = cost.filter(r => inRange(date, r.eligibilityStartDate, r.eligibilityEndDate));
+  if (inDate.length === 0) {
+    const all = dedupe(cost);
+    const starts = cost.map(r => r.eligibilityStartDate).sort(), ends = cost.map(r => r.eligibilityEndDate).sort();
+    return { reason: "out-of-date", candidates: all.slice(0, CANDIDATE_CAP), totalCandidates: all.length,
+             message: `COST records exist for "${elem}" but none is effective on ${dateLabel} (they run from ${starts[0]} to ${ends[ends.length - 1]}).` };
+  }
+  const cands = dedupe(inDate);
+  return { reason: "filters", candidates: cands.slice(0, CANDIDATE_CAP), totalCandidates: cands.length,
+           message: `${cands.length} COST record${cands.length === 1 ? " is" : "s are"} effective on ${dateLabel}, but none matches the Legal employer / People group values entered. Choose one of the combinations below.` };
+}
+
 // ── 1. runSimulation ──────────────────────────────────────────────────────────
 
 export function runSimulation(
@@ -329,6 +383,7 @@ export function runSimulation(
   if (elCostRows.length === 0) {
     trace.push(`✖ Eligibility (EL COST): no record for "${input.elementName}" matches LE / PG1 / PG2 / PG3`);
     return { eligible:false, eligibilityRecord:null, isRetro, winnerLevel:null, costableType:null,
+             diagnostics: diagnoseEligibility(data.eligibility, input.elementName, date, input.effectiveDate),
              cost:null, offset:null, levelResults:[], traceMessages:trace };
   }
   const elCost = elCostRows[0]!;
@@ -549,7 +604,7 @@ export function runSimulation(
   }));
 
   return {
-    eligible: true, eligibilityRecord: elCost.eligibility, isRetro, winnerLevel, costableType,
+    eligible: true, eligibilityRecord: elCost.eligibility, isRetro, winnerLevel, costableType, diagnostics: null,
     cost:   { type: "Cost",   lines: costLines,   segments: costLines[0]!.segments,   levels: hier },
     offset: { type: "Offset", lines: offsetLines, segments: offsetLines[0]!.segments, levels: hier },
     levelResults, traceMessages: trace,
@@ -563,23 +618,40 @@ export interface EligibilityRow {
   eligible: boolean; eligibilityRecord: string|null;
   segments: (string|null)[];
   costingSubType: string;
+  percentage: number|null;        // OVERRIDE split rows only
+  subTypeSequence: string|null;
 }
 
+/**
+ * One row per valid combination for COST and BAL. OVERRIDE can be split by percentage, so it
+ * returns one row per split record, and only for combinations that actually have an override
+ * (listing every combination as "no override" would just be noise).
+ */
 export function computeEligibilityGrid(
   combos: ComboRow[], elig: EligRow[],
   elem: string, acctType: string, date: Date
 ): EligibilityRow[] {
-  return combos.map(c => {
-    const match = matchEligibility(elig, elem, acctType, c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
-    return {
-      legalEmployer: c.legalEmployer, peopleGroup1: c.peopleGroup1,
-      peopleGroup2: c.peopleGroup2,   peopleGroup3: c.peopleGroup3 ?? null,
-      eligible: !!match,
-      eligibilityRecord: match?.eligibility ?? null,
-      segments: match ? segs(match) : Array(9).fill(null),
-      costingSubType: acctType,
-    };
+  const build = (c: ComboRow, m: EligRow|null): EligibilityRow => ({
+    legalEmployer: c.legalEmployer, peopleGroup1: c.peopleGroup1,
+    peopleGroup2: c.peopleGroup2,   peopleGroup3: c.peopleGroup3 ?? null,
+    eligible: !!m,
+    eligibilityRecord: m?.eligibility ?? null,
+    segments: m ? segs(m) : Array(9).fill(null),
+    costingSubType: acctType,
+    percentage: m && acctType === "OVERRIDE" ? (m.percentage ?? 100) : null,
+    subTypeSequence: m?.subTypeSequence ?? null,
   });
+  const out: EligibilityRow[] = [];
+  for (const c of combos) {
+    const all = matchEligRows(elig, elem, acctType, c.legalEmployer, c.peopleGroup1, c.peopleGroup2, c.peopleGroup3 ?? null, date);
+    if (acctType === "OVERRIDE") {
+      const top = all.length ? specScore(all[0]!) : 0;
+      sortBySeq(all.filter(r => specScore(r) === top)).forEach(r => out.push(build(c, r)));
+    } else {
+      out.push(build(c, all[0] ?? null));
+    }
+  }
+  return out;
 }
 
 // ── 3. computeCombinationsGrid ────────────────────────────────────────────────

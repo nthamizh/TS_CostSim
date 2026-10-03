@@ -7,6 +7,7 @@ import { api } from "../lib/api";
 import { SegmentCell, SegmentHeaders } from "../components/SegmentCell";
 import { LoadingPane, ErrorPane } from "../components/LoadingPane";
 import { exportCsv, flattenSegments } from "../lib/exportCsv";
+import { todayLocal } from "../lib/dates";
 
 const selC = "border border-gray-200 rounded-lg px-2.5 py-1.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-400";
 
@@ -19,7 +20,8 @@ export function EligibilityPage() {
   const [pg2Filter, setPG2]    = useState("");
   const [pg3Filter, setPG3]    = useState("");
   const [filter,    setFilter] = useState("");
-  const [effectiveDate, setEffectiveDate] = useState(() => new Date().toISOString().slice(0,10));
+  const [subType,   setSubType] = useState("");
+  const [effectiveDate, setEffectiveDate] = useState(todayLocal);
 
   const lov    = dd?.lov ?? {};
   const pg1Key = Object.keys(lov).find(k => k.toLowerCase().includes("people group 1")) ?? "People Group 1";
@@ -41,10 +43,11 @@ export function EligibilityPage() {
       if (pg1Filter && r.peopleGroup1  !== pg1Filter) return false;
       if (pg2Filter && r.peopleGroup2  !== pg2Filter) return false;
       if (pg3Filter && (r.peopleGroup3 ?? "") !== pg3Filter) return false;
+      if (subType && r.costingSubType !== subType) return false;
       if (filter && !JSON.stringify(r).toLowerCase().includes(filter.toLowerCase())) return false;
       return true;
     });
-  }, [rows, leFilter, pg1Filter, pg2Filter, pg3Filter, filter]);
+  }, [rows, leFilter, pg1Filter, pg2Filter, pg3Filter, filter, subType]);
 
   const nElig = useMemo(() => filtered.filter((r: any) => r.eligible).length, [filtered]);
 
@@ -53,6 +56,7 @@ export function EligibilityPage() {
     const flat = filtered.map((r: any) => ({
       "Element":            elem,
       "Costing Sub-type":   r.costingSubType,
+      "Percentage":         r.percentage ?? "",
       "Legal Employer":     r.legalEmployer,
       "People Group 1":     r.peopleGroup1,
       "People Group 2":     r.peopleGroup2,
@@ -61,7 +65,7 @@ export function EligibilityPage() {
       "Eligibility Record": r.eligibilityRecord ?? "",
       ...flattenSegments(r),
     }));
-    exportCsv(`eligibility_${elem}_${new Date().toISOString().slice(0,10)}.csv`, flat);
+    exportCsv(`eligibility_${elem}_${todayLocal()}.csv`, flat);
   };
 
   if (ddLoading) return <LoadingPane label="Loading costing data..." />;
@@ -114,6 +118,10 @@ export function EligibilityPage() {
             className={selC} />
         </div>
         <div className="flex flex-col gap-1">
+          <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Costing sub-type</label>
+          <SearchableSelect value={subType} onChange={v => setSubType(v)} options={["COST", "BAL", "OVERRIDE"]} placeholder="All" className={selC} />
+        </div>
+        <div className="flex flex-col gap-1">
           <label className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Search</label>
           <input value={filter} onChange={e => setFilter(e.target.value)} placeholder="Filter..."
             className={`${selC} w-40`} />
@@ -134,13 +142,14 @@ export function EligibilityPage() {
           <table className="min-w-full text-xs">
             <thead className="sticky top-0 bg-gray-50 z-10">
               <tr>
-                <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Account type</th>
+                <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Costing sub-type</th>
                 <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Legal employer</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">PG 1</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">PG 2</th>
                 <th className="px-2 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">PG 3</th>
                 <th className="px-2 py-2 text-center text-[10px] font-medium text-gray-400 uppercase tracking-wide">Eligible</th>
                 <th className="px-3 py-2 text-left text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Eligibility record</th>
+                <th className="px-2 py-2 text-right text-[10px] font-medium text-gray-400 uppercase tracking-wide whitespace-nowrap">Split %</th>
                 <SegmentHeaders segs={SEGS} firstBorder />
               </tr>
             </thead>
@@ -149,10 +158,11 @@ export function EligibilityPage() {
                 <tr key={idx} className="hover:bg-gray-50">
                   <td className="px-3 py-2 text-gray-500 whitespace-nowrap text-[11px]">
                     <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                      r.accountType === "Cost Account"
-                        ? "bg-blue-50 text-blue-700"
-                        : "bg-orange-50 text-orange-700"
-                    }`}>{r.accountType === "Cost Account" ? "Cost" : "Offset"}</span>
+                      r.costingSubType === "COST"     ? "bg-blue-50 text-blue-700" :
+                      r.costingSubType === "BAL"      ? "bg-orange-50 text-orange-700" :
+                      r.costingSubType === "OVERRIDE" ? "bg-purple-50 text-purple-700" :
+                                                        "bg-gray-50 text-gray-600"
+                    }`}>{r.costingSubType}</span>
                   </td>
                   <td className="px-3 py-2 text-gray-700 whitespace-nowrap">{r.legalEmployer}</td>
                   <td className="px-2 py-2 text-gray-600 whitespace-nowrap max-w-[180px] truncate">{r.peopleGroup1}</td>
@@ -165,6 +175,9 @@ export function EligibilityPage() {
                   </td>
                   <td className="px-3 py-2 font-mono text-[11px] text-gray-500 whitespace-nowrap">
                     {r.eligibilityRecord ?? <span className="text-gray-300">-</span>}
+                  </td>
+                  <td className="px-2 py-2 text-right font-mono text-[11px] text-amber-700 whitespace-nowrap">
+                    {r.percentage != null ? `${r.percentage}%` : <span className="text-gray-300">-</span>}
                   </td>
                   {(r.segments as (string|null)[]).map((v, i) => (
                     <SegmentCell key={i} v={v} s="elig" isFirst={i === 0} />
